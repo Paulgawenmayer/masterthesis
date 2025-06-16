@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google Maps 45° Ansicht</title>
+    <style>
+      html, body {{
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }}
+      #map {{
+        height: 100%;
+        width: 100%;
+      }}
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeYPaDvN0XzEmLPAvUmHVCWZaTD6C8dM0"></script>
+    <script>
+      function initMap() {{
+        const coords = {{ lat: LAT_PLACEHOLDER, lng: LNG_PLACEHOLDER }};
+        const map = new google.maps.Map(document.getElementById("map"), {{
+          center: coords,
+          zoom: 21,
+          mapTypeId: "satellite",
+          heading: HEADING_PLACEHOLDER,
+          tilt: 45
+        }});
+      }}
+    </script>
+  </head>
+  <body onload="initMap()">
+    <div id="map"></div>
+  </body>
+</html>
