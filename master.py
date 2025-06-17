@@ -50,7 +50,7 @@ sys.path.append(script_dir)
 
 # import of modules
 from transform_address_to_coordinates import get_coordinates, validate_address
-from download_GM_orthophoto import get_GM_DOP
+from download_GM_orthophoto import get_GM_DOP_by_coord, get_GM_DOP_by_bbox
 from download_GSV_photo import get_GSV_photo
 from download_LGL_60s_orthophoto import get_LGL_1960s_DOP
 from download_LGL_70s_orthophoto import get_LGL_1970s_DOP
@@ -61,6 +61,7 @@ from download_LGL_2007_2023_orthophoto import get_LGL_2007_2023_DOP
 from download_LGL_latest_orthophoto import get_latest_LGL_DOP
 from download_LGL_CIR_orthophoto import get_LGL_CIR_DOP
 from download_LGL_grayscale_orthophoto import get_LGL_grayscale_DOP
+from get_OSM_building_bbox_for_coordinates import get_building_polygon_for_coords
 
 
 from config import API_KEY
@@ -76,19 +77,19 @@ def get_images_by_address(address): # transform address to coordinates
 
 
 def get_images_by_coordinates(latitude, longitude): # Download images for given coordinates
-    print(f"\nLooking for download for: Latitude {latitude}, Longitude {longitude}")
-    get_GM_DOP(API_KEY, latitude, longitude)  # load GM-DOP
-    get_GSV_photo(API_KEY, latitude, longitude) # load GSV-image
-    get_LGL_1960s_DOP(latitude, longitude) # load all available images for the 60s
-    get_LGL_1970s_DOP(latitude, longitude) # Lload all available images for the 70s
-    get_LGL_1980s_DOP(latitude, longitude) # load all available images for the 80s
-    get_LGL_1990s_DOP(latitude, longitude) # load all available images for the 90s
-    get_LGL_2000s_DOP(latitude, longitude) # load all available images for the 2000s
-    get_LGL_2007_2023_DOP(latitude, longitude) # load all available images from 2007-2023
-    get_latest_LGL_DOP(latitude, longitude) # load latest LGL-DOP
-    get_LGL_CIR_DOP(latitude, longitude) # load latest LGL-CIR-DOP
-    get_LGL_grayscale_DOP(latitude, longitude) # load latest LGL-Grayscale-DOP
-    
+    print(f"\nLooking for download for: Latitude {latitude}, Longitude {longitude}")    
+    #get_GM_DOP_by_coord(API_KEY, latitude, longitude)  # --> load GM-DOP for only one coordinate
+    get_GM_DOP_by_bbox(*get_building_polygon_for_coords(latitude, longitude)) # --> load GM-DOP for bbox  
+    #get_GSV_photo(API_KEY, latitude, longitude) # load GSV-image
+    #get_LGL_1960s_DOP(latitude, longitude) # load all available images for the 60s
+    #get_LGL_1970s_DOP(latitude, longitude) # Lload all available images for the 70s
+    #get_LGL_1980s_DOP(latitude, longitude) # load all available images for the 80s
+    #get_LGL_1990s_DOP(latitude, longitude) # load all available images for the 90s
+    #get_LGL_2000s_DOP(latitude, longitude) # load all available images for the 2000s
+    #get_LGL_2007_2023_DOP(latitude, longitude) # load all available images from 2007-2023
+    #get_latest_LGL_DOP(latitude, longitude) # load latest LGL-DOP
+    #get_LGL_CIR_DOP(latitude, longitude) # load latest LGL-CIR-DOP
+    #get_LGL_grayscale_DOP(latitude, longitude) # load latest LGL-Grayscale-DOP
 
     
 

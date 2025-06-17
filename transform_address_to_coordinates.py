@@ -23,14 +23,14 @@ def validate_address(address):
     response = requests.post(url, json=payload)
 
     if response.status_code != 200:
-        print(f"Fehler bei der Address Validation API: {response.status_code} {response.text}")
+        print(f"Error with Address Validation API: {response.status_code} {response.text}")
         return None
 
     result = response.json()
 
     formatted_address = result.get("result", {}).get("address", {}).get("formattedAddress", None)
 
-    print(f"\nValidierte Adresse: {formatted_address}")
+    print(f"\nValidated address: {formatted_address}")
 
     # return for Geocoding API:
     if formatted_address:
@@ -48,13 +48,13 @@ def get_coordinates(address):
     response = requests.get(url, params=params)
 
     if response.status_code != 200:
-        print(f"Geocoding-API error: {response.status_code} {response.text}")
+        print(f"Geocoding API error: {response.status_code} {response.text}")
         return None
 
     result = response.json()
 
     if result["status"] != "OK":
-        print(f"geocoding failed: {result['status']} {result.get('error_message', '')}")
+        print(f"Geocoding failed: {result['status']} {result.get('error_message', '')}")
         return None
 
     location = result["results"][0]["geometry"]["location"]

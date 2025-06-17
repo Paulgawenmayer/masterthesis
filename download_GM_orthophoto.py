@@ -5,7 +5,7 @@ Created on Tue Jun 10 12:37:17 2025
 
 @author: paulmayer
 
-This script downloads a Google-Maps Tile of a given coordinate at the highest resolution & zoom possible.  
+This script downloads a Google-Maps-Tile of a given coordinate or bbox at the highest resolution & zoom possible.  
 """
 
 import requests
@@ -14,6 +14,8 @@ from PIL import Image
 import io
 import sys
 import os
+from math import cos, pi
+from geopy.distance import geodesic
 
 # Set import path to path of this script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,22 +23,14 @@ sys.path.append(script_dir)
 
 from config import API_KEY
 
-
 # Set export path
-export_folder = script_dir + "/Downloads/Maps"
+export_folder = os.path.join(script_dir, "Downloads", "Maps")
+os.makedirs(export_folder, exist_ok=True)
 
-def get_GM_DOP(api_key, latitude, longitude, zoom=20, width=200, height=200, folder=export_folder):
-    # zoom = 20 --> Maximum resolution/zoom level for satellite images (up to 5 cm per pixel in cities)
-    # width & height in pixels
-    
-    # Create filename from coordinates
-    filename = f"{latitude:.6f}_{longitude:.6f}.png"
-    
-    # Full path for Mac (~/Downloads/Maps/)
-    full_path = os.path.expanduser(f"{folder}/{filename}")
-    os.makedirs(os.path.dirname(export_folder), exist_ok=True)
-    
-    # Build URL
+def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height=200, folder=export_folder):
+    filename = f"{latitude:.6f}_{longitude:.6f}_coord.png"
+    full_path = os.path.join(folder, filename)
+
     url = (
         f"https://maps.googleapis.com/maps/api/staticmap?"
         f"center={latitude},{longitude}&"
@@ -45,41 +39,103 @@ def get_GM_DOP(api_key, latitude, longitude, zoom=20, width=200, height=200, fol
         f"maptype=satellite&"
         f"key={api_key}"
     )
-    
+
     response = requests.get(url)
-    
+
     if response.status_code == 200:
-        # Save image
         with open(full_path, 'wb') as file:
             file.write(response.content)
-        print(f"Image saved at: {full_path}")
-        
-        # Display image
+        print(f"📍 Image saved at: {full_path}")
+
         plt.figure(figsize=(5, 5))
         plt.imshow(Image.open(io.BytesIO(response.content)))
         plt.axis('off')
         plt.show()
-        
     else:
-        print(f"Error: HTTP {response.status_code}")
+        print(f"HTTP Error: {response.status_code}")
+        
+def meters_per_pixel(zoom: int, latitude: float) -> float:
+    earth_circumference = 40075016.686  # meters
+    return earth_circumference * cos(latitude * pi / 180) / (2 ** (zoom + 8))
 
-def get_coordinates():
-    input_str = input("Enter coordinates (Format: 'latitude, longitude'): ")
+def calculate_pixel_dimensions(lat1, lon1, lat2, lon2, zoom=20, scale=2, max_dim=1280):
+    center_lat = (lat1 + lat2) / 2
+    mpp = meters_per_pixel(zoom, center_lat)
+
+    lat_distance = geodesic((lat1, lon1), (lat2, lon1)).meters
+    lon_distance = geodesic((lat1, lon1), (lat1, lon2)).meters
+
+    width_px = min(int(lon_distance / mpp * scale), max_dim)
+    height_px = min(int(lat_distance / mpp * scale), max_dim)
+
+    return width_px, height_px
+
+def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY, zoom=20, scale=2, folder=export_folder):
+    center_lat = (lat1 + lat2) / 2
+    center_lon = (lon1 + lon2) / 2
+
+    width_px, height_px = calculate_pixel_dimensions(lat1, lon1, lat2, lon2, zoom, scale)
+
+    filename = f"{lat1:.6f}_{lon1:.6f}__{lat2:.6f}_{lon2:.6f}_bbox.png"
+    full_path = os.path.join(folder, filename)
+
+    url = (
+        f"https://maps.googleapis.com/maps/api/staticmap?"
+        f"center={center_lat},{center_lon}&"
+        f"zoom={zoom}&"
+        f"size={width_px}x{height_px}&"
+        f"maptype=satellite&"
+        f"scale={scale}&"
+        f"key={api_key}"
+    )
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        with open(full_path, 'wb') as file:
+            file.write(response.content)
+        print(f"BBOX Image saved at: {full_path}")
+
+        plt.figure(figsize=(6, 6))
+        plt.imshow(Image.open(io.BytesIO(response.content)))
+        plt.axis('off')
+        plt.show()
+    else:
+        print(f"HTTP Error: {response.status_code}")
+
+def get_input_coordinates():
+    input_str = input("Enter coordinates (format: 'lat,lon' for point or 'lat1,lon1,lat2,lon2' for bbox): ").strip()
+
+    parts = [p.strip() for p in input_str.split(',')]
     
-    try:
-        latitude, longitude = map(float, [x.strip() for x in input_str.split(',')])
-        return latitude, longitude
-    except ValueError:
-        print("Invalid format! Please use format '48.12345, 10.12345'.")
-        return None, None
+    if len(parts) == 2:
+        try:
+            lat, lon = map(float, parts)
+            return (lat, lon)
+        except:
+            print("Invalid coordinate format. Expected 'lat,lon'")
+            return None
+    elif len(parts) == 4:
+        try:
+            lat1, lon1, lat2, lon2 = map(float, parts)
+            return (lat1, lon1, lat2, lon2)
+        except:
+            print("Invalid coordinate format. Expected 'lat1,lon1,lat2,lon2'")
+            return None
+    else:
+        print("Invalid input. Enter either 2 coordinates (lat,lon) or 4 coordinates (lat1,lon1,lat2,lon2)")
+        return None
 
 if __name__ == "__main__":
-    latitude, longitude = get_coordinates()
-    
-    if latitude is not None and longitude is not None:
-        print("\nCoordinates successfully recognized:")
-        print(f"Latitude:  {latitude}")
-        print(f"Longitude: {longitude}")
-        get_GM_DOP(API_KEY, latitude, longitude)
-    else:
-        print("Error processing coordinates.")
+    coords = get_input_coordinates()
+
+    if coords is None:
+        print("Aborted due to input error.")
+    elif len(coords) == 2:
+        lat, lon = coords
+        print(f"\n📍 coordinates registered: {lat}, {lon}")
+        get_GM_DOP_by_coord(API_KEY, lat, lon)
+    elif len(coords) == 4:
+        lat1, lon1, lat2, lon2 = coords
+        print(f"\nBBOX registered: NW=({lat1},{lon1}), SE=({lat2},{lon2})")
+        get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2)
