@@ -76,7 +76,7 @@ def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY, zoom=20, scale=2
 
     width_px, height_px = calculate_pixel_dimensions(lat1, lon1, lat2, lon2, zoom, scale)
 
-    filename = f"{lat1:.6f}_{lon1:.6f}__{lat2:.6f}_{lon2:.6f}_bbox.png"
+    filename = f"{lat1:.6f}_{lon1:.6f}__{lat2:.6f}_{lon2:.6f}_GM.png"
     full_path = os.path.join(folder, filename)
 
     url = (
