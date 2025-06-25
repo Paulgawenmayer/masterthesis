@@ -27,7 +27,10 @@ from config import API_KEY
 export_folder = os.path.join(script_dir, "Downloads", "Maps")
 os.makedirs(export_folder, exist_ok=True)
 
-def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height=200, folder=export_folder):
+def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height=200, folder=None):
+    if folder is None:
+        folder = export_folder
+
     filename = f"{latitude:.6f}_{longitude:.6f}_coord.png"
     full_path = os.path.join(folder, filename)
 
@@ -47,10 +50,11 @@ def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height
             file.write(response.content)
         print(f"📍 Image saved at: {full_path}")
 
-        plt.figure(figsize=(5, 5))
-        plt.imshow(Image.open(io.BytesIO(response.content)))
-        plt.axis('off')
-        plt.show()
+        # display the image
+        #plt.figure(figsize=(5, 5))
+        #plt.imshow(Image.open(io.BytesIO(response.content)))
+        #plt.axis('off')
+        #plt.show()
     else:
         print(f"HTTP Error: {response.status_code}")
         
@@ -70,7 +74,10 @@ def calculate_pixel_dimensions(lat1, lon1, lat2, lon2, zoom=20, scale=2, max_dim
 
     return width_px, height_px
 
-def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY, zoom=20, scale=2, folder=export_folder):
+def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY, zoom=20, scale=2, folder=None):
+    if folder is None:
+        folder = export_folder
+
     center_lat = (lat1 + lat2) / 2
     center_lon = (lon1 + lon2) / 2
 
@@ -96,10 +103,11 @@ def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY, zoom=20, scale=2
             file.write(response.content)
         print(f"BBOX Image saved at: {full_path}")
 
-        plt.figure(figsize=(6, 6))
-        plt.imshow(Image.open(io.BytesIO(response.content)))
-        plt.axis('off')
-        plt.show()
+        # display the image
+        #plt.figure(figsize=(6, 6))
+        #plt.imshow(plt.imread(full_path))
+        #plt.axis('off')
+        #plt.show()
     else:
         print(f"HTTP Error: {response.status_code}")
 

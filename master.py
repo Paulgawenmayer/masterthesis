@@ -71,8 +71,8 @@ from config import API_KEY
 
 def create_directory(address_or_coords):
     """
-    Erstellt ein Verzeichnis unter script_dir + "/Downloads" mit dem Namen der validierten Adresse
-    (bei Adresse) oder der von reverse_geocode ermittelten Adresse (bei Koordinaten).
+    Creates a directory under script_dir + "/Downloads" with the name of the validated address
+    (for address input) or the address determined by reverse_geocode (for coordinate input).
     """
     downloads_path = os.path.join(script_dir, "Downloads")
     if not os.path.exists(downloads_path):
@@ -90,17 +90,16 @@ def create_directory(address_or_coords):
     if coords:
         # Koordinaten: reverse_geocode nutzen
         lat, lon = coords
-        from config import API_KEY
         address = reverse_geocode(lat, lon, API_KEY, verbose=False)
         if not address:
             address = f"{lat}_{lon}"
     else:
-        # Adresse: validate_address nutzen
+        # Address: use validate_address
         address = validate_address(address_or_coords)
         if not address:
             address = address_or_coords
 
-    # Verzeichnisnamen säubern (keine ungültigen Zeichen)
+    # Clean directory name (remove invalid characters)
     import re
     safe_address = re.sub(r'[^\w\-_\. ]', '_', address)
     dir_path = os.path.join(downloads_path, safe_address)
@@ -115,7 +114,7 @@ def get_images_by_address(address): # transform address to coordinates
     if coords:
         validated = validate_address(address)
         dir_path = create_directory(address)
-        print(f"Verzeichnis erstellt: {dir_path}")
+        print(f"Directory created: {dir_path}")
         get_images_by_coordinates(coords[0], coords[1], output_dir=dir_path)
 
 
@@ -123,12 +122,12 @@ def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download 
     print(f"\nLooking for download for: Latitude {latitude}, Longitude {longitude}")    
     if output_dir is None:
         output_dir = create_directory(f"{latitude}, {longitude}")
-    print(f"Verzeichnis erstellt: {output_dir}")
-    #get_GM_DOP_by_coord(API_KEY, latitude, longitude, folder=output_dir)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
+    print(f"Directory created: {output_dir}")
+    # get_GM_DOP_by_coord(API_KEY, latitude, longitude, folder=output_dir)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
     get_GM_DOP_by_bbox(*get_building_polygon_for_coords(latitude, longitude), folder=output_dir) # --> load GM-DOP for bbox  
     get_GSV_photo(API_KEY, latitude, longitude, folder=output_dir) # load GSV-image
     get_LGL_1960s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 60s
-    get_LGL_1970s_DOP(latitude, longitude, output_dir=output_dir) # Lload all available images for the 70s
+    get_LGL_1970s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 70s
     get_LGL_1980s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 80s
     get_LGL_1990s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 90s
     get_LGL_2000s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 2000s

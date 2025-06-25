@@ -33,33 +33,36 @@ def get_coordinates():
         print("Invalid format! Please use format '48.12345, 10.12345'.")
         return None, None    
 
-def get_LGL_2007_2023_DOP(latitude, longitude):
+def get_LGL_2007_2023_DOP(latitude, longitude, output_dir=None):
+    if output_dir is None:
+        output_dir = os.path.join(script_dir, "Downloads/LGL/Historical/2007_2023")
+    os.makedirs(output_dir, exist_ok=True)
+    
     x_coordinate, y_coordinate = wgs84_to_utm32(latitude, longitude)
     found_usable_image = False  # Flag to track if any usable image was found
     
     # Parameters
     area = 20  # Meters
-    base_dir = os.path.join(script_dir, "Downloads", "LGL", "Historical")
-    os.makedirs(base_dir, exist_ok=True)
+    # base_dir = os.path.join(script_dir, "Downloads", "LGL", "Historical")
+    # os.makedirs(base_dir, exist_ok=True)
     
     # WMS URL for historical DOP
     wms_url = "https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_ATKIS_HIST_DOP_20_RGB?"
-    layer_list = [
-        '2010-2007_DOP_20_RGB', '2011-2008_DOP_20_RGB', '2012-2010_DOP_20_RGB',
-        '2013-2010_DOP_20_RGB', '2014-2010_DOP_20_RGB', '2015-2013_DOP_20_RGB',
-        '2016-2014_DOP_20_RGB', '2017-2014_DOP_20_RGB', '2018-2016_DOP_20_RGB',
-        '2019-2017_DOP_20_RGB', '2020-2018_DOP_20_RGB', '2021-2019_DOP_20_RGB',
-        '2022-2019_DOP_20_RGB', '2023-2022_DOP_20_RGB'
-    ]
+    # layer_list = [ ... ]
     
     try:
         # Initialize WMS
         wms = WebMapService(wms_url, version='1.3.0')
+        # Dynamically get all layer names from the WMS
+        layer_list = list(wms.contents.keys())
     
         for layer in layer_list:
             print(f"\nExamining layer {layer}...")
-            year_dir = os.path.join(base_dir, layer)
-            os.makedirs(year_dir, exist_ok=True)
+            if output_dir is not None:
+                year_dir = output_dir
+            else:
+                year_dir = os.path.join(script_dir, "Downloads/LGL/Historical/2007_2023", layer)
+                os.makedirs(year_dir, exist_ok=True)
             
             try:
                 # Request image from WMS server
@@ -83,21 +86,27 @@ def get_LGL_2007_2023_DOP(latitude, longitude):
                     os.remove(tmp_path)
                 else:
                     found_usable_image = True
+                    # Extract year (first number in layer name)
+                    import re
+                    match = re.match(r"(\d{4})", layer)
+                    if match:
+                        year = match.group(1)
+                    else:
+                        year = "unknown"
                     # Define final path and move the temporary file
-                    filename = f"{latitude:.6f}_{longitude:.6f}.jpg"
+                    filename = f"{latitude:.6f}_{longitude:.6f}_LGL_{year}.jpg"
                     filepath = os.path.join(year_dir, filename)
                     shutil.move(tmp_path, filepath)
-                    
                     print("Coordinates successfully recognized:")
                     print(f'Latitude: "{latitude:.6f}"')
                     print(f'Longitude: "{longitude:.6f}"')
                     print(f'Image saved at: "{filepath}"')
-                    
+                   
                     # Display image
-                    plt.figure(figsize=(6, 6))
-                    plt.imshow(plt.imread(filepath))
-                    plt.axis('off')
-                    plt.show()
+                    #plt.figure(figsize=(6, 6))
+                    #plt.imshow(plt.imread(final_path))
+                    #plt.axis('off')
+                    #plt.show()
                     
             except Exception as e:
                 print(f"❌ Error processing layer {layer}: {str(e)}")
@@ -120,4 +129,3 @@ if __name__ == "__main__":
         success = get_LGL_2007_2023_DOP(lat, lon)
         if not success:
             print("No valid images found for the provided coordinates.")
-    

@@ -34,14 +34,15 @@ def wgs84_to_utm32(lat, lon):
     transformer = Transformer.from_crs("EPSG:4326", "EPSG:25832", always_xy=True)
     return transformer.transform(lon, lat)
 
-def get_LGL_1990s_DOP(latitude, longitude):
+def get_LGL_1990s_DOP(latitude, longitude, output_dir=None):
+    if output_dir is None:
+        output_dir = os.path.join(script_dir, "Downloads/LGL/Historical/1990_1999")
     x_coordinate, y_coordinate = wgs84_to_utm32(latitude, longitude)
     image_width = 20  # meter
     found_usable_image = False  # Flag to track if any usable image was found
 
     # prepare paths
-    download_dir = os.path.join(script_dir, "Downloads/LGL/Historical/1990_1999")
-    os.makedirs(download_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     wms_url = "https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_HIST_DOP_1990-1999?"
 
@@ -74,15 +75,15 @@ def get_LGL_1990s_DOP(latitude, longitude):
                     found_usable_image = True
                     # define target directory to save image
                     filename = f"{latitude:.6f}_{longitude:.6f}_LGL_{year}.jpg"
-                    final_path = os.path.join(download_dir, filename)
+                    final_path = os.path.join(output_dir, filename)
                     shutil.move(tmp_path, final_path)
                     print(f"✅ Layer {year} saved at: {final_path}")
 
                     # show image
-                    plt.figure(figsize=(6, 6))
-                    plt.imshow(plt.imread(final_path))
-                    plt.axis('off')
-                    plt.show()
+                    #plt.figure(figsize=(6, 6))
+                    #plt.imshow(plt.imread(final_path))
+                    #plt.axis('off')
+                    #plt.show()
 
             except Exception as e:
                 print(f"❌ Error caused by layer {year}: {e}")

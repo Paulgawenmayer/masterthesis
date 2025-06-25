@@ -43,7 +43,10 @@ def check_streetview_availability(api_key, latitude, longitude):
         print(f"Error in metadata request: HTTP {response.status_code}")
         return None
 
-def get_GSV_photo(api_key, latitude, longitude, heading=0, fov=70, pitch=10, width=600, height=400, folder=export_folder):
+def get_GSV_photo(api_key, latitude, longitude, heading=0, fov=70, pitch=10, width=600, height=400, folder=None):
+    if folder is None:
+        folder = export_folder
+
     # Check availability and get metadata
     metadata = check_streetview_availability(api_key, latitude, longitude)
     
@@ -144,10 +147,10 @@ def get_GSV_photo(api_key, latitude, longitude, heading=0, fov=70, pitch=10, wid
         print(f"Street View image successfully saved as:\n{full_path}")
              
         # Display image
-        plt.figure(figsize=(6, 5))
-        plt.imshow(Image.open(io.BytesIO(response.content)))
-        plt.axis('off')
-        plt.show()
+        #plt.figure(figsize=(6, 5))
+        #plt.imshow(Image.open(io.BytesIO(response.content)))
+        #plt.axis('off')
+        #plt.show()
         
     else:
         print(f"Error retrieving image: HTTP {response.status_code}")

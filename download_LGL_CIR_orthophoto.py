@@ -31,15 +31,17 @@ def get_coordinates():
         print("Invalid format! Please use format '48.12345, 10.12345'.")
         return None, None   
     
-def get_LGL_CIR_DOP(latitude, longitude):
+def get_LGL_CIR_DOP(latitude, longitude, output_dir=None):
+    if output_dir is None:
+        # Prepare absolute path of this script to ensure downloaded data will be saved in correct directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(script_dir, "Downloads/LGL/CIR")
+    os.makedirs(output_dir, exist_ok=True)
+
     x_coordinate, y_coordinate = wgs84_to_utm32(latitude, longitude)
 
     # Parameters
     area = 20  # Meters
-    # Prepare absolute path of this script to ensure downloaded data will be saved in correct directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    download_dir = os.path.join(script_dir, "Downloads/LGL/CIR")
-    os.makedirs(download_dir, exist_ok=True)
     
     # WMS URL of LGL-BW
     wms_url = "https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_ATKIS_DOP_20_CIR?"
@@ -59,8 +61,8 @@ def get_LGL_CIR_DOP(latitude, longitude):
         )
     
         # Filename with coordinates
-        filename = f"{latitude:.6f}_{longitude:.6f}.jpg"
-        filepath = os.path.join(download_dir, filename)
+        filename = f"{latitude:.6f}_{longitude:.6f}_LGL_CIR.jpg"
+        filepath = os.path.join(output_dir, filename)
     
         # Save image
         with open(filepath, "wb") as f:
@@ -73,10 +75,10 @@ def get_LGL_CIR_DOP(latitude, longitude):
         print(f'Image saved at: "{filepath}"\n')
     
         # Display image
-        plt.figure(figsize=(8, 8))
-        plt.imshow(plt.imread(filepath))
-        plt.axis('off')
-        plt.show()
+        #plt.figure(figsize=(6, 6))
+        #plt.imshow(plt.imread(final_path))
+        #plt.axis('off')
+        #plt.show()
     
     except Exception as e:
         print(f"❌ Error retrieving map: {e}")
