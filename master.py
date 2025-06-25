@@ -16,7 +16,7 @@ EXPLANATION OF SUBSCRIPTS:
     download_GM_orthophoto.py               This script downloads a Google-Maps image of a given coordinate at the highest resolution & zoom possible.  
     download_GSV_photo.py                   This script downloads the nearest Google-Street-View image to a given coordinate (which should represent a house),
                                             adjusting heading, fov and pitch, to capture the building the best way possible. 
-    download_LGL_1968_orthophoto.py:        This script downloads a 20x20 m DOP of the year 1968 for a given coordinate in Baden-Wuerttemberg.
+    download_LGL_1968_orthophoto.py         This script downloads a 20x20 m DOP of the year 1968 for a given coordinate in Baden-Wuerttemberg.
     download_LGL_1975_ohrthophoto.py        This script downloads a 20x20 m DOP of the year 1975 for a given coordinate in Baden-Wuerttemberg.
                                             UNFORTUNATELY there are currently some server issues at LGL, which causes  malfunction in data-provision.
     download_LGL_1984_orthophoto.py         This script downloads a 20x20 m DOP of the year 1984 for a given coordinate in Baden-Wuerttemberg.
@@ -69,28 +69,73 @@ from config import API_KEY
 
 
 
+def create_directory(address_or_coords):
+    """
+    Erstellt ein Verzeichnis unter script_dir + "/Downloads" mit dem Namen der validierten Adresse
+    (bei Adresse) oder der von reverse_geocode ermittelten Adresse (bei Koordinaten).
+    """
+    downloads_path = os.path.join(script_dir, "Downloads")
+    if not os.path.exists(downloads_path):
+        os.makedirs(downloads_path)
+
+    # Prüfen ob Input Koordinaten sind
+    def is_coords(val):
+        try:
+            lat, lon = map(float, [x.strip() for x in val.split(',')])
+            return lat, lon
+        except Exception:
+            return None
+
+    coords = is_coords(address_or_coords)
+    if coords:
+        # Koordinaten: reverse_geocode nutzen
+        lat, lon = coords
+        from config import API_KEY
+        address = reverse_geocode(lat, lon, API_KEY, verbose=False)
+        if not address:
+            address = f"{lat}_{lon}"
+    else:
+        # Adresse: validate_address nutzen
+        address = validate_address(address_or_coords)
+        if not address:
+            address = address_or_coords
+
+    # Verzeichnisnamen säubern (keine ungültigen Zeichen)
+    import re
+    safe_address = re.sub(r'[^\w\-_\. ]', '_', address)
+    dir_path = os.path.join(downloads_path, safe_address)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    return dir_path
+
+
 def get_images_by_address(address): # transform address to coordinates
     print(f"\nLooking for address: {address}")
     coords = get_coordinates(address)
     if coords:
-        validate_address(address)
-        get_images_by_coordinates(coords[0], coords[1])
+        validated = validate_address(address)
+        dir_path = create_directory(address)
+        print(f"Verzeichnis erstellt: {dir_path}")
+        get_images_by_coordinates(coords[0], coords[1], output_dir=dir_path)
 
 
-def get_images_by_coordinates(latitude, longitude): # Download images for given coordinates
+def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download images for given coordinates
     print(f"\nLooking for download for: Latitude {latitude}, Longitude {longitude}")    
-    #get_GM_DOP_by_coord(API_KEY, latitude, longitude)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
-    get_GM_DOP_by_bbox(*get_building_polygon_for_coords(latitude, longitude)) # --> load GM-DOP for bbox  
-    get_GSV_photo(API_KEY, latitude, longitude) # load GSV-image
-    get_LGL_1960s_DOP(latitude, longitude) # load all available images for the 60s
-    get_LGL_1970s_DOP(latitude, longitude) # Lload all available images for the 70s
-    get_LGL_1980s_DOP(latitude, longitude) # load all available images for the 80s
-    get_LGL_1990s_DOP(latitude, longitude) # load all available images for the 90s
-    get_LGL_2000s_DOP(latitude, longitude) # load all available images for the 2000s
-    get_LGL_2007_2023_DOP(latitude, longitude) # load all available images from 2007-2023
-    get_latest_LGL_DOP(latitude, longitude) # load latest LGL-DOP
-    get_LGL_CIR_DOP(latitude, longitude) # load latest LGL-CIR-DOP
-    get_LGL_grayscale_DOP(latitude, longitude) # load latest LGL-Grayscale-DOP
+    if output_dir is None:
+        output_dir = create_directory(f"{latitude}, {longitude}")
+    print(f"Verzeichnis erstellt: {output_dir}")
+    #get_GM_DOP_by_coord(API_KEY, latitude, longitude, folder=output_dir)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
+    get_GM_DOP_by_bbox(*get_building_polygon_for_coords(latitude, longitude), folder=output_dir) # --> load GM-DOP for bbox  
+    get_GSV_photo(API_KEY, latitude, longitude, folder=output_dir) # load GSV-image
+    get_LGL_1960s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 60s
+    get_LGL_1970s_DOP(latitude, longitude, output_dir=output_dir) # Lload all available images for the 70s
+    get_LGL_1980s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 80s
+    get_LGL_1990s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 90s
+    get_LGL_2000s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 2000s
+    get_LGL_2007_2023_DOP(latitude, longitude, output_dir=output_dir) # load all available images from 2007-2023
+    get_latest_LGL_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-DOP
+    get_LGL_CIR_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-CIR-DOP
+    get_LGL_grayscale_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-Grayscale-DOP
 
     
 
