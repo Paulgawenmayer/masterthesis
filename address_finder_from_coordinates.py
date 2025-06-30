@@ -18,7 +18,7 @@ sys.path.append(script_dir)
 from config import API_KEY
 
 
-# Verbose als Parameter, an welchen die Printanweisungen geknüpft sind
+# Verbose toggles printing of additional information
 def reverse_geocode(lat, lng, api_key, verbose=True):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {
