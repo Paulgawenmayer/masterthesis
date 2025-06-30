@@ -24,8 +24,8 @@ from config import API_KEY
 # set path back to the script directory to ensure output is saved in this directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-PROGRESS_FILE = os.path.join(script_dir, "address_collection_progress.json") # File to save progress in case of interruptions due to rate limiting or other issues
-RATE_LIMIT = 1500  # max requests per minute
+PROGRESS_FILE = os.path.join(script_dir, "address_collection_progress.json")  # File to save progress in case of interruptions due to rate limiting or other issues
+RATE_LIMIT = 2000  # max requests per minute
 SLEEP_BETWEEN_REQUESTS = 60.0 / RATE_LIMIT  # seconds
 
 
@@ -44,12 +44,13 @@ def clear_progress():
         os.remove(PROGRESS_FILE)
 
 
-def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False):
+def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False, total_points=None):
     """
     Given a WKT polygon, queries the Google Geocoding API for all addresses within the polygon.
     Results are saved as a CSV file in the script directory.
     grid_step: step size in degrees for the grid (smaller = more precise, but more API calls)
     resume: if True, resume from last saved progress
+    total_points: total number of grid points for progress display
     """
     output_csv = os.path.join(script_dir, "addresses_in_area.csv")
     polygon = wkt.loads(wkt_polygon)
@@ -68,6 +69,11 @@ def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False):
             print(f"Resuming from lat={start_lat}, lon={start_lon}")
         else:
             print("No matching progress found or WKT changed. Starting from beginning.")
+
+    # Prepare progress bar
+    if total_points is None:
+        total_points = count_grid_points_in_polygon(wkt_polygon, grid_step)
+    points_done = 0
 
     lat = start_lat
     while lat <= maxy:
@@ -92,12 +98,16 @@ def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False):
                     if addr_tuple not in addresses:
                         addresses.add(addr_tuple)
                         results.append(address_components)
-                # Fortschritt speichern
+                # Save progress
                 save_progress(lat, lon, wkt_polygon)
+                points_done += 1
+                percent = (points_done / total_points) * 100
+                print(f"Progress: {points_done}/{total_points} ({percent:.2f}%)", end='\r', flush=True)
             lon += grid_step
             time.sleep(SLEEP_BETWEEN_REQUESTS)
         lat += grid_step
 
+    print()  # Newline after progress bar
     # Sort by street, then house number (numerically if possible)
     def extract_street_and_number(address):
         match = re.match(r"^(.*?)(?:\s+(\d+[a-zA-Z]?))?(,|$)", address)
@@ -124,7 +134,7 @@ def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False):
         for addr in unique_addresses:
             writer.writerow([addr])
     print(f"Saved {len(unique_addresses)} addresses to {output_csv}")
-    # Fortschrittsdatei löschen, wenn fertig
+    # Delete progress file when finished
     if os.path.exists(PROGRESS_FILE):
         os.remove(PROGRESS_FILE)
 
@@ -159,11 +169,50 @@ def reverse_geocode_components(lat, lon):
         print(f"Error in reverse geocoding: {e}")
     return None
 
+def count_grid_points_in_polygon(wkt_polygon, grid_step=0.00015):
+    from shapely import wkt
+    from shapely.geometry import Point
+    polygon = wkt.loads(wkt_polygon)
+    minx, miny, maxx, maxy = polygon.bounds
+    count = 0
+    lat = miny
+    while lat <= maxy:
+        lon = minx
+        while lon <= maxx:
+            point = Point(lon, lat)
+            if polygon.contains(point):
+                count += 1
+            lon += grid_step
+        lat += grid_step
+    return count
+
 if __name__ == "__main__":
-    wkt_input = input("Please enter a WKT polygon: ").strip()
     resume = False
+    wkt_input = None
+    grid_step = 0.00015
+    # Check if progress exists
     if os.path.exists(PROGRESS_FILE):
-        answer = input("Progress file found. Resume from last saved point? (y/n): ").strip().lower()
-        if answer == 'y':
-            resume = True
-    get_addresses_in_polygon(wkt_input, resume=resume)
+        progress = load_progress()
+        if progress and progress.get("wkt"):
+            print("Progress file found.")
+            wkt_input = progress["wkt"]
+            print("Calculating grid points for the saved polygon...")
+            n_points = count_grid_points_in_polygon(wkt_input, grid_step)
+            print(f"The polygon contains approx. {n_points} grid points (API calls).")
+            answer = input("Resume from last saved point and continue? (y/n): ").strip().lower()
+            if answer == 'y':
+                resume = True
+            else:
+                wkt_input = input("Please enter a new WKT polygon: ").strip()
+        else:
+            wkt_input = input("Please enter a WKT polygon: ").strip()
+    else:
+        wkt_input = input("Please enter a WKT polygon: ").strip()
+    # Always calculate grid points before starting and ask for confirmation
+    n_points = count_grid_points_in_polygon(wkt_input, grid_step)
+    print(f"The polygon contains approx. {n_points} grid points (API calls).")
+    answer = input("Do you want to start the process now? (y/n): ").strip().lower()
+    if answer == 'y':
+        get_addresses_in_polygon(wkt_input, grid_step=grid_step, resume=resume, total_points=n_points)
+    else:
+        print("Aborted.")
