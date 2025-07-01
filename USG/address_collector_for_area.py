@@ -75,13 +75,19 @@ def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False, total
         total_points = count_grid_points_in_polygon(wkt_polygon, grid_step)
     points_done = 0
 
+    # Prepare CSV: write header if file does not exist
+    if not os.path.exists(output_csv):
+        with open(output_csv, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["coordinates", "address"])
+
     lat = start_lat
     while lat <= maxy:
         lon = start_lon if lat == start_lat else minx
         while lon <= maxx:
             point = Point(lon, lat)
             if polygon.contains(point):
-                # Rate limiting: max 1500 requests/minute
+                # Rate limiting: max x requests/minute
                 now = time.time()
                 request_times = deque()
                 while request_times and now - request_times[0] > 60:
@@ -98,6 +104,14 @@ def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False, total
                     if addr_tuple not in addresses:
                         addresses.add(addr_tuple)
                         results.append(address_components)
+                        # Write address immediately to CSV
+                        coordinates = f"{address_components.get('address_latitude')}, {address_components.get('address_longitude')}" if address_components.get('address_latitude') is not None and address_components.get('address_longitude') is not None else ''
+                        with open(output_csv, 'a', newline='', encoding='utf-8') as csvfile:
+                            writer = csv.writer(csvfile)
+                            writer.writerow([
+                                coordinates,
+                                address_components.get('address')
+                            ])
                 # Save progress
                 save_progress(lat, lon, wkt_polygon)
                 points_done += 1
@@ -108,36 +122,13 @@ def get_addresses_in_polygon(wkt_polygon, grid_step=0.00015, resume=False, total
         lat += grid_step
 
     print()  # Newline after progress bar
-    # Sort by street, then house number (numerically if possible)
-    def extract_street_and_number(address):
-        match = re.match(r"^(.*?)(?:\s+(\d+[a-zA-Z]?))?(,|$)", address)
-        if match:
-            street = match.group(1).strip() if match.group(1) else ''
-            number = match.group(2) if match.group(2) else ''
-            return street, number
-        return '', ''
-    def house_number_key(num):
-        if not num:
-            return float('inf')
-        match = re.match(r"(\d+)", str(num))
-        if match:
-            return int(match.group(1))
-        return float('inf')
-    # Prepare list of unique addresses
-    unique_addresses = list({row['address'] for row in results if 'address' in row and row['address']})
-    # Sort by street and house number
-    unique_addresses.sort(key=lambda addr: (extract_street_and_number(addr)[0], house_number_key(extract_street_and_number(addr)[1])))
-    # Write results to CSV (single column)
-    with open(output_csv, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["address"])
-        for addr in unique_addresses:
-            writer.writerow([addr])
-    print(f"Saved {len(unique_addresses)} addresses to {output_csv}")
+    print(f"Saved addresses to {output_csv}")
+    # Call address_sorter.py to sort the CSV
+    import subprocess
+    subprocess.run([sys.executable, os.path.join(script_dir, "address_sorter.py")], check=True)
     # Delete progress file when finished
     if os.path.exists(PROGRESS_FILE):
         os.remove(PROGRESS_FILE)
-
 
 def reverse_geocode_components(lat, lon):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
@@ -149,7 +140,10 @@ def reverse_geocode_components(lat, lon):
         response = requests.get(url, params=params)
         data = response.json()
         if response.status_code == 200 and data.get("status") == "OK":
-            components = data["results"][0]["address_components"]
+            result = data["results"][0]
+            components = result["address_components"]
+            geometry = result.get("geometry", {})
+            location = geometry.get("location", {})
             def get_component(types):
                 for comp in components:
                     if any(t in comp["types"] for t in types):
@@ -160,9 +154,17 @@ def reverse_geocode_components(lat, lon):
             postcode = get_component(["postal_code"])
             city = get_component(["locality", "postal_town", "administrative_area_level_2"])
             country = get_component(["country"])
-            # Compose full address for sorting
             address = f"{street or ''} {number or ''}, {postcode or ''} {city or ''}, {country or ''}".strip()
-            return {"street": street, "number": number, "postcode": postcode, "city": city, "country": country, "address": address}
+            return {
+                "street": street,
+                "number": number,
+                "postcode": postcode,
+                "city": city,
+                "country": country,
+                "address": address,
+                "address_latitude": location.get("lat"),
+                "address_longitude": location.get("lng")
+            }
         else:
             print(f"API error for ({lat}, {lon}): HTTP {response.status_code}, status: {data.get('status')}, message: {data.get('error_message')}")
     except Exception as e:
