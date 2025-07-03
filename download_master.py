@@ -64,7 +64,7 @@ from download_LGL_grayscale_orthophoto import get_LGL_grayscale_DOP
 from get_OSM_building_bbox_for_coordinates import get_building_polygon_for_coords
 from address_finder_from_coordinates import reverse_geocode
 from double_image_deleter import delete_duplicate_images
-from data_augmentator import data_augmentator
+# from data_augmentator import data_augmentator
 
 
 from config import API_KEY
@@ -138,7 +138,7 @@ def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download 
     get_LGL_CIR_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-CIR-DOP
     get_LGL_grayscale_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-Grayscale-DOP
     delete_duplicate_images(output_dir)  # delete double images in output_dir
-    data_augmentator(output_dir, 10)  # augment images in output_dir the number sets the number of augmentations per image
+    # data_augmentator(output_dir, 10)  # augment images in output_dir the number sets the number of augmentations per image
     
 
 def is_coordinate_input(user_input):
