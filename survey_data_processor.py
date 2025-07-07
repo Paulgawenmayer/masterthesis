@@ -3,7 +3,7 @@ Created on Tue Jun 10 12:19:02 2025
 
 @author: paulmayer
 
-This script processes field survey CSV files, extracts image URLs from the 'Bild' column,
+This script processes field survey_result CSV files, extracts image URLs from the 'Bild' column,
 downloads the images, and organizes the data into structured directories for training datasets. 
 Thereby, it creates a directory for each unique address found in the CSV files,
 and saves the corresponding data and images in that directory.
