@@ -15,7 +15,7 @@ import re
 import requests
 
 FIELD_SURVEY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'field_survey')
-TRAINING_DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'training_datasets')
+TRAINING_DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'training_datasets', 'colored')
 
 os.makedirs(TRAINING_DATASETS_DIR, exist_ok=True)
 
