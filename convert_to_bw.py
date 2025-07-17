@@ -1,3 +1,9 @@
+"""
+This script converts all images in the 'colored' directory to black and white (BW)
+and saves them in the 'BW' directory. It preserves the directory structure and copies non-image
+files as they are.
+"""
+
 import os
 import shutil
 from PIL import Image

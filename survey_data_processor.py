@@ -64,8 +64,8 @@ def process_survey_csv(csv_path):
             bild_value = row.get('Bild') or row.get('bild')
             filename, url = extract_image_url(bild_value)
             if url:
-                # Use the filename from the CSV, or fallback to 'image.jpg'
-                image_filename = filename if filename else 'image.jpg'
+                # Use the folder name as the image filename
+                image_filename = f"{folder_name}.jpg"
                 image_save_path = os.path.join(address_dir, image_filename)
                 download_image(url, image_save_path)
 
