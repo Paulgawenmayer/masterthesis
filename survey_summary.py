@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import shapefile  # pyshp
 
-# this function creates a summary table of survey results
+# this function creates a summary table of field-survey results
 def create_summary_table(base_dir="field_survey", target_file="survey_results.csv"):
     # Columns to count 'checked'
     checked_columns = [
@@ -64,7 +64,7 @@ def create_summary_table(base_dir="field_survey", target_file="survey_results.cs
     print(f"Summary saved to {summary_path}")
 
 
-# this function generates a shapefile from survey results
+# this function generates a shapefile from field-survey results
 def shapefile_output(base_dir="field_survey", target_file="survey_results.csv", shapefile_name="houses_examined"):
     # Prepare shapefile writer
     summary_dir = os.path.join(base_dir, "survey_summary")
