@@ -6,6 +6,7 @@ It requires an API key for the Google Maps API, which should be stored in a 'con
 
 It further evaluates insulation methods from the filtered forms survey summary and saves the counts as insulation_methods_table.csv and a bar chart.
 It adds average thickness rows for "Dachdämmung", "Fassadendämmung", and "Sockeldämmung".
+It also creates additional bar charts for the insulation materials used in the facade, sockel, and roof.
 """
 
 import os
