@@ -1,8 +1,4 @@
-"""
-Created on Tue Jun 10 12:19:02 2025
-
-@author: paulmayer
-
+""" 
 This script processes field survey_result CSV files, extracts image URLs from the 'Bild' column,
 downloads the images, and organizes the data into structured directories for training datasets. 
 Thereby, it creates a directory for each unique address found in the CSV files,
@@ -13,6 +9,7 @@ import os
 import csv
 import re
 import requests
+from fill_missing_coordinates import fill_missing_coordinates
 
 FIELD_SURVEY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'field_survey')
 TRAINING_DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'training_datasets', 'colored')
@@ -70,6 +67,10 @@ def process_survey_csv(csv_path):
                 download_image(url, image_save_path)
 
 def main():
+    # Fülle zuerst die fehlenden Koordinaten in den CSVs auf
+    print("Vervollständige fehlende Koordinaten in den Adresslisten...")
+    fill_missing_coordinates()
+    print("Koordinatenvervollständigung abgeschlossen.")
     for root, dirs, files in os.walk(FIELD_SURVEY_DIR):
         if 'survey_results.csv' in files:
             csv_path = os.path.join(root, 'survey_results.csv')

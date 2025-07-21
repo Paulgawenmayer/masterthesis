@@ -1,8 +1,4 @@
 """
-Created on Tue Jun 10 12:19:02 2025
-
-@author: paulmayer
-
 This script completes the missing coordinates in field survey CSV files (using transform_address_to_coordinates.py), 
 which occurred, when added manually to the dataset in the field. It therefore is mandatory to complete the dataset. 
 It should be executed before survey_data_processor.py.
