@@ -57,7 +57,7 @@ def process_survey_csv(csv_path):
             # Write a small CSV for this address
             address_csv_path = os.path.join(address_dir, 'address_data.csv')
             with open(address_csv_path, 'w', newline='', encoding='utf-8') as out_csv:
-                writer = csv.DictWriter(out_csv, fieldnames=row.keys())
+                writer = csv.DictWriter(out_csv, fieldnames=row.keys(), delimiter=';')
                 writer.writeheader()
                 writer.writerow(row)
             # Download image if link exists in 'Bild' column
