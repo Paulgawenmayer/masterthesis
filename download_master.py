@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jun 10 12:19:02 2025
-
-@author: paulmayer
-
 This is the master-script. It enables you to download orthophotos and Street-View-photos 
 from customer-choosen areas. Either at scale of single buildings or for all buildings 
 within a choosen region/frame. Images can be downloaded for different instants of time (s. below). Each script 
