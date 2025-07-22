@@ -67,15 +67,23 @@ def process_survey_csv(csv_path):
                 download_image(url, image_save_path)
 
 def main():
-    # Fülle zuerst die fehlenden Koordinaten in den CSVs auf
-    print("Vervollständige fehlende Koordinaten in den Adresslisten...")
+    # Fill missing coordinates in the CSVs first
+    print("Filling missing coordinates in address lists...")
     fill_missing_coordinates()
-    print("Koordinatenvervollständigung abgeschlossen.")
+    print("Coordinate completion finished.")
+    # Collect all survey_results.csv files for progress bar
+    csv_files = []
     for root, dirs, files in os.walk(FIELD_SURVEY_DIR):
         if 'survey_results.csv' in files:
-            csv_path = os.path.join(root, 'survey_results.csv')
-            print(f'Processing: {csv_path}')
-            process_survey_csv(csv_path)
+            csv_files.append(os.path.join(root, 'survey_results.csv'))
+    total_files = len(csv_files)
+    for i, csv_path in enumerate(csv_files, 1):
+        print(f'Processing: {csv_path}')
+        process_survey_csv(csv_path)
+        # Progress bar
+        percent = int((i / total_files) * 100)
+        bar = ('#' * (percent // 2)).ljust(50)
+        print(f"Progress: |{bar}| {percent}% ({i}/{total_files})", end='\r' if i < total_files else '\n')
 
 if __name__ == '__main__':
     main()

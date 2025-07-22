@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jun 10 12:23:20 2025
-
-@author: paulmayer
-
 This script transforms and returns a given address into coordinates in WGS84.
 """
 
@@ -30,7 +24,7 @@ def validate_address(address):
 
     formatted_address = result.get("result", {}).get("address", {}).get("formattedAddress", None)
 
-    print(f"\nValidated address: {formatted_address}")
+    #print(f"\nValidated address: {formatted_address}")
 
     # return for Geocoding API:
     if formatted_address:

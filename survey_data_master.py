@@ -8,28 +8,35 @@ Executes the following steps in order:
 5. image_collector
 6. selective_training_dataset_generator
 
-This script does not yet include the code to analyze the forms-survey results, which is done in forms_survey_summary.py.
+- To ensure the input of selective_training_dataset_generator.py, is executed interactively pty.spawn is used.
+  The pty library might cause some malfunctions in e. g. windows, so it is recommended to run this script in a Unix-like environment (Linux or macOS).
+  
+- This script does not yet include the code to analyze the forms-survey results, which is done in forms_survey_summary.py.
 """
-import subprocess
 import sys
+import pty
+import subprocess
 
-def run_script(script_name):
+def run_script(script_name, interactive=False):
     print(f"\n--- Running {script_name} ---")
-    result = subprocess.run([sys.executable, script_name])
-    if result.returncode != 0:
-        print(f"Error while running {script_name}")
+    if interactive:
+        pty.spawn([sys.executable, script_name])
     else:
-        print(f"{script_name} completed successfully.")
+        result = subprocess.run([sys.executable, script_name])
+        if result.returncode != 0:
+            print(f"Error while running {script_name}")
+        else:
+            print(f"{script_name} completed successfully.")
 
 if __name__ == "__main__":
     scripts = [
-        "fill_missing_coordinates.py",
-        "survey_summary.py",
-        "survey_data_processor.py",
-        "convert_to_bw.py",
-        "image_collector.py",
-        "selective_training_dataset_generator.py"
+        #("fill_missing_coordinates.py", False),
+        #("survey_summary.py", False),
+        #("survey_data_processor.py", False),
+        #("convert_to_bw.py", False),
+        #("image_collector.py", False),
+        ("selective_training_dataset_generator.py", True)
     ]
-    for script in scripts:
-        run_script(script)
+    for script, interactive in scripts:
+        run_script(script, interactive)
     print("\nAll processing steps completed.")

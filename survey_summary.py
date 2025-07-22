@@ -127,15 +127,23 @@ def create_address_list(base_dir="field_survey", target_file="survey_results.csv
     summary_dir = os.path.join(base_dir, "survey_summary")
     os.makedirs(summary_dir, exist_ok=True)
     address_list = []
+    # Collect all files to process for progress bar
+    files_to_process = []
     for root, dirs, files in os.walk(base_dir):
         if target_file in files:
-            file_path = os.path.join(root, target_file)
-            try:
-                df = pd.read_csv(file_path)
-                if 'Adresse' in df.columns:
-                    address_list.extend(df['Adresse'].dropna().astype(str).tolist())
-            except Exception as e:
-                print(f"Error processing {file_path}: {e}")
+            files_to_process.append(os.path.join(root, target_file))
+    total_files = len(files_to_process)
+    for idx, file_path in enumerate(files_to_process, 1):
+        try:
+            df = pd.read_csv(file_path)
+            if 'Adresse' in df.columns:
+                address_list.extend(df['Adresse'].dropna().astype(str).tolist())
+        except Exception as e:
+            print(f"Error processing {file_path}: {e}")
+        # Progress bar
+        percent = int((idx / total_files) * 100)
+        bar = ('#' * (percent // 2)).ljust(50)
+        print(f"Progress: |{bar}| {percent}% ({idx}/{total_files})", end='\r' if idx < total_files else '\n')
     # Write address list to CSV
     address_list_path = os.path.join(summary_dir, "address_list.csv")
     pd.DataFrame({'Address': address_list}).to_csv(address_list_path, index=False)

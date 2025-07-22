@@ -27,14 +27,19 @@ IMAGES = os.path.join(DST_DATASETS, 'images')
 # Helper: get all image filenames in images dir
 image_filenames = set(os.listdir(IMAGES)) if os.path.exists(IMAGES) else set()
 
+
+#this function filters the datasets based on the presence of images
+# in the 'images' directory. It removes any subdirectory in both COLORED and BW directories
+# that does not contain any image files that match the filenames in the 'images'
+# directory. This is useful to ensure that only datasets with corresponding images are kept.
 def choose_by_image():
     for dataset_dir in [COLORED, BW]:
         if not os.path.exists(dataset_dir):
             continue
-        for subdir in os.listdir(dataset_dir):
+        subdirs = [subdir for subdir in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, subdir))]
+        total = len(subdirs)
+        for idx, subdir in enumerate(subdirs, 1):
             subdir_path = os.path.join(dataset_dir, subdir)
-            if not os.path.isdir(subdir_path):
-                continue
             # Check if any image in subdir matches one in images
             found = False
             for file in os.listdir(subdir_path):
@@ -44,6 +49,10 @@ def choose_by_image():
             if not found:
                 shutil.rmtree(subdir_path)
                 print(f"Removed {subdir_path} (no matching image)")
+            # Progress bar (global for filtering)
+            percent = int((idx / total) * 100)
+            bar = ('#' * (percent // 2)).ljust(50)
+            print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
 
 def choose_by_attributes():
     allowed_criteria = [
@@ -59,18 +68,23 @@ def choose_by_attributes():
     if not criteria:
         print("Error: no valid criteria.")
         return
+    # Filtering progress bar
     for dataset_dir in [COLORED, BW]:
         if not os.path.exists(dataset_dir):
             continue
-        for subdir in os.listdir(dataset_dir):
+        subdirs = [subdir for subdir in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, subdir))]
+        total = len(subdirs)
+        for idx, subdir in enumerate(subdirs, 1):
             subdir_path = os.path.join(dataset_dir, subdir)
-            if not os.path.isdir(subdir_path):
-                continue
             address_csv = os.path.join(subdir_path, 'address_data.csv')
             if not os.path.exists(address_csv):
                 print(f"address_data.csv NOT FOUND in {subdir_path}")
                 shutil.rmtree(subdir_path)
                 print(f"Removed {subdir_path} (no address_data.csv)")
+                # Filtering progress bar
+                percent = int((idx / total) * 100)
+                bar = ('#' * (percent // 2)).ljust(50)
+                print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
                 continue
             else:
                 print(f"address_data.csv FOUND in {subdir_path}")
@@ -79,10 +93,16 @@ def choose_by_attributes():
             except Exception:
                 shutil.rmtree(subdir_path)
                 print(f"Removed {subdir_path} (CSV read error)")
+                percent = int((idx / total) * 100)
+                bar = ('#' * (percent // 2)).ljust(50)
+                print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
                 continue
             if df.empty:
                 shutil.rmtree(subdir_path)
                 print(f"Removed {subdir_path} (empty CSV)")
+                percent = int((idx / total) * 100)
+                bar = ('#' * (percent // 2)).ljust(50)
+                print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
                 continue
             row = df.iloc[0]
             all_ok = True
@@ -103,6 +123,31 @@ def choose_by_attributes():
             if not all_ok:
                 shutil.rmtree(subdir_path)
                 print(f"Removed {subdir_path} (criteria not met)")
+            percent = int((idx / total) * 100)
+            bar = ('#' * (percent // 2)).ljust(50)
+            print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
+
+    # Cleanup progress bar
+    print("\nCleaning up images folder...")
+    colored_images = set()
+    if os.path.exists(COLORED):
+        for subdir in os.listdir(COLORED):
+            subdir_path = os.path.join(COLORED, subdir)
+            if os.path.isdir(subdir_path):
+                for file in os.listdir(subdir_path):
+                    colored_images.add(file)
+    if os.path.exists(IMAGES):
+        images_list = list(os.listdir(IMAGES))
+        total_cleanup = len(images_list)
+        for idx, img_file in enumerate(images_list, 1):
+            if img_file not in colored_images:
+                img_path = os.path.join(IMAGES, img_file)
+                os.remove(img_path)
+                print(f"Removed {img_path} (not in any colored subfolder)")
+            percent = int((idx / total_cleanup) * 100)
+            bar = ('#' * (percent // 2)).ljust(50)
+            print(f"Cleanup Progress: |{bar}| {percent}% ({idx}/{total_cleanup})", end='\r' if idx < total_cleanup else '\n')
+    print("Image cleanup complete.")
 
 def main():
     print("Choose mode: 'choose_by_image' oder 'choose_by_attributes'")

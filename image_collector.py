@@ -15,16 +15,25 @@ os.makedirs(IMAGES_DIR, exist_ok=True)
 IMAGE_EXTENSIONS = ('.jpg')
 
 def collect_images(src_dir, dst_dir):
+    # Collect all image files for progress bar
+    all_images = []
     for root, dirs, files in os.walk(src_dir):
         for file in files:
             if file.lower().endswith(IMAGE_EXTENSIONS):
-                src_file = os.path.join(root, file)
-                dst_file = os.path.join(dst_dir, file)
-                try:
-                    shutil.copy2(src_file, dst_file)
-                    print(f"Copied: {src_file} -> {dst_file}")
-                except Exception as e:
-                    print(f"Error copying {src_file}: {e}")
+                all_images.append((root, file))
+    total_images = len(all_images)
+    for idx, (root, file) in enumerate(all_images, 1):
+        src_file = os.path.join(root, file)
+        dst_file = os.path.join(dst_dir, file)
+        try:
+            shutil.copy2(src_file, dst_file)
+            print(f"Copied: {src_file} -> {dst_file}")
+        except Exception as e:
+            print(f"Error copying {src_file}: {e}")
+        # Progress bar
+        percent = int((idx / total_images) * 100)
+        bar = ('#' * (percent // 2)).ljust(50)
+        print(f"Progress: |{bar}| {percent}% ({idx}/{total_images})", end='\r' if idx < total_images else '\n')
 
 def main():
     collect_images(COLORED_DIR, IMAGES_DIR)
