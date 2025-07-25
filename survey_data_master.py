@@ -30,12 +30,12 @@ def run_script(script_name, interactive=False):
 
 if __name__ == "__main__":
     scripts = [
-        #("fill_missing_coordinates.py", False),
+        ("fill_missing_coordinates.py", False),
         ("survey_summary.py", False),
         ("survey_data_processor.py", False),
         ("convert_to_bw.py", False),
         ("image_collector.py", False),
-        ("selective_training_dataset_generator.py", True)
+        #("selective_training_dataset_generator.py", True) #can be activated if needed
     ]
     for script, interactive in scripts:
         run_script(script, interactive)

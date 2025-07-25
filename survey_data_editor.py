@@ -3,7 +3,6 @@ This script allows interactive editing of the insulation attribute 'Aufsparrend�
 It displays each image in 'training_datasets/colored/<address>' using matplotlib, asks the user for input, and updates the corresponding CSV files.
 
 - if __name__ == "__main__": is not nesessary, as the script runs on import and does not contain any functions that need to be called directly.
-    
 """
 import os
 import pandas as pd
@@ -11,12 +10,16 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import shutil
 import subprocess
+import locale
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COLORED_DIR = os.path.join(BASE_DIR, 'training_datasets', 'colored')
 FIELD_SURVEY_DIR = os.path.join(BASE_DIR, 'field_survey')
 
-for subdir in sorted(os.listdir(COLORED_DIR)):
+# Set German locale for sorting
+locale.setlocale(locale.LC_COLLATE, 'de_DE.UTF-8')
+
+for subdir in sorted(os.listdir(COLORED_DIR), key=locale.strxfrm):
     subdir_path = os.path.join(COLORED_DIR, subdir)
     if not os.path.isdir(subdir_path):
         continue
@@ -29,10 +32,16 @@ for subdir in sorted(os.listdir(COLORED_DIR)):
         if file.lower().endswith('.jpg'):
             img_path = os.path.join(subdir_path, file)
             img = Image.open(img_path)
-            img = img.resize((1200, 900))  # Pillow: resize for larger display
-            img.show(title=name_directory)
-            # User input
+            fig = plt.figure(figsize=(12, 9))  # Feste große Fenstergröße
+            plt.imshow(img)
+            plt.axis('off')
+            plt.subplots_adjust(left=0, right=1, top=1, bottom=0)  # Maximiert die Bildfläche
+            plt.tight_layout()
+            plt.title(name_directory)
+            plt.show(block=False)
+            # User input erscheint sofort, während das Bild offen ist
             answer = input('Aufsparrendämmung y/n ? ')
+            plt.close(fig)
             if answer.strip().lower() == 'y':
                 # Update address_data.csv in subdir
                 csv_path = os.path.join(subdir_path, 'address_data.csv')
@@ -56,7 +65,6 @@ for subdir in sorted(os.listdir(COLORED_DIR)):
                         except Exception as e:
                             print(f'Error updating {survey_csv}: {e}')
             # If 'n', continue to next image/subdir
-            img.close()
             break  # Only one image per subdir shown
 
 # After all subdirectories have been processed
