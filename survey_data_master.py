@@ -10,7 +10,7 @@ Executes the following steps in order:
 
 - To ensure the input of selective_training_dataset_generator.py, is executed interactively pty.spawn is used.
   The pty library might cause some malfunctions in e. g. windows, so it is recommended to run this script in a Unix-like environment (Linux or macOS).
-  
+
 - This script does not yet include the code to analyze the forms-survey results, which is done in forms_survey_summary.py.
 """
 import sys
@@ -31,10 +31,10 @@ def run_script(script_name, interactive=False):
 if __name__ == "__main__":
     scripts = [
         #("fill_missing_coordinates.py", False),
-        #("survey_summary.py", False),
-        #("survey_data_processor.py", False),
-        #("convert_to_bw.py", False),
-        #("image_collector.py", False),
+        ("survey_summary.py", False),
+        ("survey_data_processor.py", False),
+        ("convert_to_bw.py", False),
+        ("image_collector.py", False),
         ("selective_training_dataset_generator.py", True)
     ]
     for script, interactive in scripts:

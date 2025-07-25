@@ -54,6 +54,8 @@ def choose_by_image():
             bar = ('#' * (percent // 2)).ljust(50)
             print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
 
+
+
 def choose_by_attributes():
     allowed_criteria = [
         "Aufsparrendämmung", "Fassadendämmung", "Sockeldämmung", "Fenster fassadenbündig", "Kommentar",
