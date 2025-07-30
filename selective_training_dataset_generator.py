@@ -58,11 +58,11 @@ def choose_by_image():
 
 def choose_by_attributes():
     allowed_criteria = [
-        "Aufsparrendämmung", "Fassadendämmung", "Sockeldämmung", "Fenster fassadenbündig", "Kommentar",
+        "Aufsparrendämmung?", "Dach gedämmt?", "Fassadendämmung", "Sockeldämmung", "Fenster fassadenbündig", "Kommentar",
         "Einfachverglasung", "Zweifachverglasung", "Dreifachverglasung", "Dach saniert?"
     ]
     glazing_types = ["Einfachverglasung", "Zweifachverglasung", "Dreifachverglasung"]
-    criteria_str = input("Criteria (separated by comma: Aufsparrendämmung, Fassadendämmung, Sockeldämmung, Fenster fassadenbündig, Kommentar, Einfachverglasung, Zweifachverglasung, Dreifachverglasung, Dach saniert?)\n> ")
+    criteria_str = input("Criteria (separated by comma: Aufsparrendämmung?, Dach gedämmt?, Fassadendämmung, Sockeldämmung, Fenster fassadenbündig, Kommentar, Einfachverglasung, Zweifachverglasung, Dreifachverglasung, Dach saniert?)\n> ")
     if not criteria_str:
         print("Error: no criteria given")
         return
