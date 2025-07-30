@@ -15,8 +15,9 @@ import shapefile  # pyshp
 def create_summary_table(base_dir="field_survey", target_file="survey_results.csv"):
     # Columns to count 'checked'
     checked_columns = [
-        "Aufsparrendämmung",
-        "Dach saniert?",
+        "Aufsparrendämmung?",
+        "Dach gedämmt?", 
+        "Dach saniert?", 
         "Fassadendämmung",
         "Sockeldämmung",
         "Fenster fassadenbündig"
@@ -77,6 +78,7 @@ def shapefile_output(base_dir="field_survey", target_file="survey_results.csv", 
     w.field('Address', 'C')
     w.field('Rafter_insulation', 'C')
     w.field('Roof_renovated', 'C')
+    w.field('Roof_insulated', 'C')
     w.field('Facade_insulation', 'C')
     w.field('Base_insulation', 'C')
     w.field('Flush_windows', 'C')
@@ -101,8 +103,9 @@ def shapefile_output(base_dir="field_survey", target_file="survey_results.csv", 
                                     idx,
                                     coords,
                                     row.get('Adresse', ''),
-                                    row.get('Aufsparrendämmung', ''),
+                                    row.get('Aufsparrendämmung?', ''),
                                     row.get('Dach saniert?', ''),
+                                    row.get('Dach gedämmt?', ''),
                                     row.get('Fassadendämmung', ''),
                                     row.get('Sockeldämmung', ''),
                                     row.get('Fenster fassadenbündig', ''),

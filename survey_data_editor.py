@@ -1,8 +1,10 @@
 """
-This script allows interactive editing of the insulation attribute 'Aufsparrendämmung' for each address in the training dataset.
+This script allows interactive editing of the insulation attribute 'Aufsparrendämmung?' for each address in the training dataset.
 It displays each image in 'training_datasets/colored/<address>' using matplotlib, asks the user for input, and updates the corresponding CSV files.
 
 - if __name__ == "__main__": is not nesessary, as the script runs on import and does not contain any functions that need to be called directly.
+
+To make this script more useful the attribute can be exchanged with any other attribute in the dataset.
 """
 import os
 import pandas as pd
