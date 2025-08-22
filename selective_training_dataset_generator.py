@@ -1,9 +1,17 @@
 """
+In order to work as intended, this script needs to be executed in Terminal.
+
 This script copies the training datasets from 'training_datasets' to 'selective_training_datasets',
 filters the datasets based on user-defined criteria, and allows the user to choose between filtering by image
-or by attributes in the address data CSV files. Filtering by image removes directories that do not contain any images
-from the 'images' directory, while filtering by attributes checks for specific criteria in the CSV files
-such as insulation methods and glazing types.
+or by attributes in the address data CSV files. 
+
+Filtering by image: Removes directories that do not contain any images from the 'images' directory, 
+while filtering by attributes checks for specific criteria in the CSV files such as insulation methods and glazing types.
+
+Filtering by attributes: Checks for specific criteria in the CSV files such as insulation methods and glazing types.
+Only directories that meet the criteria will be kept in the 'colored' and 'BW' directories.
+This script is designed to be run in a directory structure where the 'training_datasets' directory
+is located at the same level as this script.    
 """
 
 
@@ -15,16 +23,35 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SRC_DATASETS = os.path.join(BASE_DIR, 'training_datasets')
 DST_DATASETS = os.path.join(BASE_DIR, 'selective_training_datasets')
 
-# Copy the whole training_datasets folder
+# --- Progress bar for copying training_datasets ---
+def copy_with_progress(src, dst):
+    # Collect all files to copy
+    files_to_copy = []
+    for root, dirs, files in os.walk(src):
+        for file in files:
+            files_to_copy.append(os.path.join(root, file))
+    total_files = len(files_to_copy)
+    # print("total files to copy:", total_files)
+    for idx, src_file in enumerate(files_to_copy, 1):
+        rel_path = os.path.relpath(src_file, src)
+        dst_file = os.path.join(dst, rel_path)
+        os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+        shutil.copy2(src_file, dst_file)
+        percent = int((idx / total_files) * 100)
+        bar = ('#' * (percent // 2)).ljust(50)
+        print(f"Copying training_datasets: |{bar}| {percent}% ({idx}/{total_files})", end='\r' if idx < total_files else '\n')
+    print("Copy complete.")
+
+# Remove and copy with progress bar
 if os.path.exists(DST_DATASETS):
     shutil.rmtree(DST_DATASETS)
-shutil.copytree(SRC_DATASETS, DST_DATASETS)
+os.makedirs(DST_DATASETS, exist_ok=True)
+copy_with_progress(SRC_DATASETS, DST_DATASETS)
 
 COLORED = os.path.join(DST_DATASETS, 'colored')
 BW = os.path.join(DST_DATASETS, 'BW')
 IMAGES = os.path.join(DST_DATASETS, 'images')
 
-# Helper: get all image filenames in images dir
 image_filenames = set(os.listdir(IMAGES)) if os.path.exists(IMAGES) else set()
 
 
@@ -62,7 +89,7 @@ def choose_by_attributes():
         "Einfachverglasung", "Zweifachverglasung", "Dreifachverglasung", "Dach saniert?"
     ]
     glazing_types = ["Einfachverglasung", "Zweifachverglasung", "Dreifachverglasung"]
-    criteria_str = input("Criteria (separated by comma: Aufsparrendämmung?, Dach gedämmt?, Fassadendämmung, Sockeldämmung, Fenster fassadenbündig, Kommentar, Einfachverglasung, Zweifachverglasung, Dreifachverglasung, Dach saniert?)\n> ")
+    criteria_str = input("Select criteria (separated by comma): Aufsparrendämmung?, Dach gedämmt?, Fassadendämmung, Sockeldämmung, Fenster fassadenbündig, Kommentar, Einfachverglasung, Zweifachverglasung, Dreifachverglasung, Dach saniert?)\n> ")
     if not criteria_str:
         print("Error: no criteria given")
         return
