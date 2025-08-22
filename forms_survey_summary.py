@@ -25,6 +25,7 @@ os.makedirs(CHARTS_DIR, exist_ok=True)
 
 ADDRESS_COLUMN = 'Wie lautet die Adresse Ihrer Immobilie [Straße, Hausnummer, PLZ, Ort]'
 
+
 # Function to check if an address exists using Google Maps Geocoding API
 def address_exists(address):
     url = 'https://maps.googleapis.com/maps/api/geocode/json'
@@ -66,6 +67,7 @@ def address_exists(address):
         print(f"Error validating address '{address}': {e}")
         return False, address
 
+
 # Function to filter valid addresses from the input CSV and save them to the output CSV
 def filter_valid_addresses():
     if not os.path.exists(INPUT_CSV):
@@ -92,7 +94,8 @@ def filter_valid_addresses():
     else:
         print("No valid addresses found.")
 
-# Function to evaluate insulation methods in the forms survey and save as insulation_methods.csv
+
+# Function to evaluate insulation methods in the forms survey and save as insulation_methods_table.csv
 def evaluate_forms_survey():
     """
     Evaluates the insulation/glazing methods from the filtered forms survey summary and saves the counts as insulation_methods_table.csv and a bar chart.
@@ -125,7 +128,7 @@ def evaluate_forms_survey():
         for method in methods:
             if method in str(entry):
                 counts[method] += 1
-    # Prepare result table as one row per Maßnahme, with Durchschnittliche Dämmdicke [cm] as extra column
+    # Prepare result table as one row per method, with 'Durchschnittliche Dämmdicke [cm]' as extra column
     rows = []
     for method in methods:
         avg = ''
