@@ -18,6 +18,10 @@ import pty
 import subprocess
 
 def run_script(script_name, interactive=False):
+    """Runs a script by its name, optionally in interactive mode. If interactive is True, it uses pty.spawn to run the script.
+    Otherwise, it uses subprocess.run to execute the script.
+    this is useful for scripts that require user input or interaction, such as the selective_training_dataset_generator.py script."""
+
     print(f"\n--- Running {script_name} ---")
     if interactive:
         pty.spawn([sys.executable, script_name])
@@ -32,6 +36,7 @@ if __name__ == "__main__":
     scripts = [
         #("fill_missing_coordinates.py", False),
         #("survey_summary.py", False),
+        #("forms_survey_summary.py", False)
         #("survey_data_processor.py", False),
         #("convert_to_bw.py", False),
         #("image_collector.py", False),
