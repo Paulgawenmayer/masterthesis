@@ -1,8 +1,8 @@
 """
 This script is the head-master script to execute the entire workflow. 
 It executes the two master-sub-scripts in order to simplify the workflow:
-1. survey_data_master.py
-2. download_master.py
+    1. survey_data_master.py
+    2. download_master.py
 """
 
 import sys
