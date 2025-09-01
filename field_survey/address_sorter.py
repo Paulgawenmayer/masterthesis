@@ -1,3 +1,7 @@
+"""
+This script sorts addresses in a CSV file by street name and house number.
+"""
+
 import csv
 import re
 import os
