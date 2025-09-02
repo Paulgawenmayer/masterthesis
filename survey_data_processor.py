@@ -17,8 +17,10 @@ TRAINING_DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 os.makedirs(TRAINING_DATASETS_DIR, exist_ok=True)
 
 def safe_dirname(name):
-    # Replace invalid characters for folder names
-    return re.sub(r'[^\w\-_\. ]', '_', name)
+    # Replace invalid characters for folder names AND replace spaces with underscores
+    safe_name = re.sub(r'[^\w\-_\.]', '_', name)  
+    safe_name = safe_name.replace(' ', '_')  
+    return safe_name
 
 def extract_image_url(bild_value):
     # Extract URL from the Bild column (format: 'date_time.jpg (URL)')
