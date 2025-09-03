@@ -2,8 +2,10 @@
 This script processes field survey_results CSV files to create a summary table of survey results.
 It counts the occurrences of specific checked columns and glazing types across all survey files,
 and saves the summary as a CSV file in the 'field_survey' directory.
+
 It also generates a shapefile containing survey points with their coordinates and attributes.
 Furthermore, it collects all addresses from the survey results into a separate CSV file.
+
 If used, it is designed to be run in a directory structure where survey results are stored in subdirectories
 under a base directory named 'field_survey'.
 """

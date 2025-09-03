@@ -24,6 +24,10 @@ def validate_address(address):
 
     formatted_address = result.get("result", {}).get("address", {}).get("formattedAddress", None)
 
+    # Explizite Ersetzung von "Deutschland" durch "Germany"
+    if formatted_address and "Deutschland" in formatted_address:
+        formatted_address = formatted_address.replace("Deutschland", "Germany")
+
     #print(f"\nValidated address: {formatted_address}")
 
     # return for Geocoding API:
