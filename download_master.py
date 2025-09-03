@@ -1,7 +1,7 @@
 """
 This is the master-script. It enables you to download orthophotos and Street-View-photos 
-from customer-choosen areas. Either at scale of single buildings or for all buildings 
-within a choosen region/frame. Images can be downloaded for different instants of time (s. below). Each script 
+from customer-choosen areas. Either at scale of single buildings or for a batch of buildings listed in 
+address_list.csv. Images can be downloaded for different instants of time (s. below). Each script 
 can also be run independently on itself.
 
 EXPLANATION OF SUBSCRIPTS: 
@@ -35,6 +35,7 @@ USAGE:
 
 import sys
 import os
+import pandas as pd
 # import argparse -- create CLI when everything else is done
 
 # set import path to path of this master script to avoid path-related-import-problems
@@ -126,6 +127,8 @@ def get_images_by_address(address): # transform address to coordinates
         dir_path = create_directory(address)
         print(f"Directory created: {dir_path}")
         get_images_by_coordinates(coords[0], coords[1], output_dir=dir_path)
+    else:
+        print(f"Could not geocode address: {address}")
 
 
 def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download images for given coordinates
@@ -156,14 +159,63 @@ def is_coordinate_input(user_input):
     except ValueError:
         return False
 
-def main():
-    user_input = input("Please enter an address or coordinates in WGS84 (Latitude, Longitude): ").strip()
+def batch_process_addresses():
+    """Process all addresses from the CSV file"""
+    csv_path = os.path.join(script_dir, "field_survey", "survey_summary", "address_list.csv")
     
-    if is_coordinate_input(user_input):
-        lat, lon = map(float, user_input.split(','))
-        get_images_by_coordinates(lat, lon)
+    if not os.path.exists(csv_path):
+        print(f"Error: Address list not found at {csv_path}")
+        return
+    
+    try:
+        # Read the address list
+        address_df = pd.read_csv(csv_path)
+        
+        if "Address" not in address_df.columns:
+            print("Error: CSV file doesn't contain an 'Address' column")
+            return
+        
+        addresses = address_df["Address"].dropna().astype(str).tolist()
+        total_addresses = len(addresses)
+        
+        print(f"Found {total_addresses} addresses to process")
+        confirm = input(f"Do you want to proceed with downloading data for all {total_addresses} addresses? (y/n): ")
+        
+        if confirm.lower() != "y":
+            print("Batch processing cancelled")
+            return
+        
+        # Process each address
+        for idx, address in enumerate(addresses, 1):
+            print(f"\n[{idx}/{total_addresses}] Processing address: {address}")
+            try:
+                get_images_by_address(address)
+                print(f"Completed address {idx}/{total_addresses}")
+            except Exception as e:
+                print(f"Error processing address {address}: {str(e)}")
+                continue
+            
+        print(f"\nBatch processing complete! Processed {total_addresses} addresses.")
+        
+    except Exception as e:
+        print(f"Error during batch processing: {str(e)}")
+
+def main():
+    # First, ask if user wants batch processing or single address
+    batch_mode = input("Do you want to execute the batch-process (y) or enter a single coordinate/address (n)? ").strip().lower()
+    
+    if batch_mode == "y":
+        # Batch process all addresses from the CSV
+        batch_process_addresses()
     else:
-        get_images_by_address(user_input)
+        # Single address/coordinate mode (original behavior)
+        user_input = input("Please enter an address or coordinates in WGS84 (Latitude, Longitude): ").strip()
+        
+        if is_coordinate_input(user_input):
+            lat, lon = map(float, user_input.split(','))
+            get_images_by_coordinates(lat, lon)
+        else:
+            get_images_by_address(user_input)
 
 if __name__ == "__main__":
     main()
