@@ -20,7 +20,7 @@ EXPLANATION OF SUBSCRIPTS:
     download_LGL_latest_orthophoto.py       This script downloads the latest 20x20 m DOP for a given coordinate in Baden-Wuerttemberg.
     download_LGL_CIR_orthophoto.py          This script downloads the latest 20x20m DOP for a given coordinate in Baden-Wuerttemberg as CIR.
     download_LGL_grayscale_orthophoto.py    This script downloads the latest DOP as 20x20 m for a given coordinate in in Baden-Wuerttemberg in grayscale format
-    
+    download_data_distributor.py            This script distributes downloaded data from the "Downloads" folder to the "training_datasets/colored" directory.
 
 USAGE: 
     1. Get a single building: 
@@ -60,7 +60,7 @@ from get_OSM_building_bbox_for_coordinates import get_building_polygon_for_coord
 from address_finder_from_coordinates import reverse_geocode
 from double_image_deleter import delete_duplicate_images
 # from data_augmentator import data_augmentator
-
+from download_data_distributor import distribute_downloaded_data
 
 from config import API_KEY
 
@@ -150,7 +150,7 @@ def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download 
     get_LGL_grayscale_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-Grayscale-DOP
     delete_duplicate_images(output_dir)  # delete double images in output_dir
     # data_augmentator(output_dir, 10)  # augment images in output_dir the number sets the number of augmentations per image
-    
+    distribute_downloaded_data(os.path.join(script_dir, "Downloads"), os.path.join(script_dir, "training_datasets", "colored")) # distributes image-data form downlaod-section to training_datasets
 
 def is_coordinate_input(user_input):
     try:
