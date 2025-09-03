@@ -69,7 +69,7 @@ def process_survey_csv(csv_path):
                 download_image(url, image_save_path)
 
 def main():
-    # Fill missing coordinates in the CSVs first
+    # Fill missing coordinates in the CSVs first (they are caused if manually added during field survey Stuttgart)
     print("Filling missing coordinates in address lists...")
     fill_missing_coordinates()
     print("Coordinate completion finished.")

@@ -69,12 +69,17 @@ def create_directory(address_or_coords):
     """
     Creates a directory under script_dir + "/Downloads" with the name of the validated address
     (for address input) or the address determined by reverse_geocode (for coordinate input).
+    
+    Directory name is normalized:
+    - Spaces are replaced with underscores
+    - Double underscores are replaced with single underscores
+    - Invalid characters are replaced with underscores
     """
     downloads_path = os.path.join(script_dir, "Downloads")
     if not os.path.exists(downloads_path):
         os.makedirs(downloads_path)
 
-    # Prüfen ob Input Koordinaten sind
+    # Test if input is coordinates
     def is_coords(val):
         try:
             lat, lon = map(float, [x.strip() for x in val.split(',')])
@@ -84,7 +89,7 @@ def create_directory(address_or_coords):
 
     coords = is_coords(address_or_coords)
     if coords:
-        # Koordinaten: reverse_geocode nutzen
+        # Coordinates: use reverse_geocode
         lat, lon = coords
         address = reverse_geocode(lat, lon, API_KEY, verbose=False)
         if not address:
@@ -95,9 +100,18 @@ def create_directory(address_or_coords):
         if not address:
             address = address_or_coords
 
-    # Clean directory name (remove invalid characters)
+    # Clean directory name and normalize it:
+    # 1. Replace spaces with underscores
+    # 2. Remove invalid characters
+    # 3. Replace double underscores with single ones
     import re
-    safe_address = re.sub(r'[^\w\-_\. ]', '_', address)
+    safe_address = address.replace(' ', '_')  # Replace spaces with underscores
+    safe_address = re.sub(r'[^\w\-_\.]', '_', safe_address)  # Replace invalid chars (note: no space in allowed chars)
+    
+    # Replace double underscores with single ones until no more doubles exist
+    while '__' in safe_address:
+        safe_address = safe_address.replace('__', '_')
+    
     dir_path = os.path.join(downloads_path, safe_address)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)

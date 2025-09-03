@@ -38,6 +38,10 @@ if __name__ == "__main__":
         #("survey_summary.py", False),
         #("forms_survey_summary.py", False)
         #("survey_data_processor.py", False),
+        #("GML_slicer.py", False), # externer Skriptaufruf noch nicht validiert!
+        #("gml_distributor.py", False), # externer Skriptaufruf noch nicht validiert!
+        # HIER DIE DATA AUGMENTATION SKRIPTE EINFÜGEN
+
         #("convert_to_bw.py", False),
         #("image_collector.py", False),
         ("selective_training_dataset_generator.py", True) #can be activated if needed
