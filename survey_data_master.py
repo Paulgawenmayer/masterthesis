@@ -49,16 +49,16 @@ if __name__ == "__main__":
     downloads_dir = os.path.join(script_dir, "training_datasets/colored")
     
     scripts = [
-        #("fill_missing_coordinates.py", False), 
-        #("survey_summary.py", False),
-        #("forms_survey_summary.py", False)
-        #("survey_data_processor.py", False),
-        #("GML_slicer.py", False), # external script-execution not yet validated!
-        #("gml_distributor.py", False), # external script-execution not yet validated!
+        #("fill_missing_coordinates.py", False), # fill missing coordinates in survey CSV files
+        #("survey_summary.py", False), # create summary-charts and tables for the field survey results
+        #("forms_survey_summary.py", False), # create summary-charts and tables for the forms survey results
+        #("survey_data_processor.py", False), # process survey data (e. g. create training_datasets)
+        #("GML_slicer.py", False), # Slice .gml-data for every single training_dataset # external script-execution not yet validated!
+        #("gml_distributor.py", False), # Distribute .gml-data to training_datasets # external script-execution not yet validated!
         ("data_augmentator.py", False, ["--dir", downloads_dir]),  # Pass directory to be augmented directly
-        #("convert_to_bw.py", False),
-        #("image_collector.py", False),
-        #("selective_training_dataset_generator.py", True) #can be activated if needed
+        #("convert_to_bw.py", False), # create another training_dataset with bw-images
+        #("image_collector.py", False), # extract GSV-images from survey data to create selective training datasets
+        #("selective_training_dataset_generator.py", True) #can be activated if needed to create selective training_datasets
     ]
     
     for item in scripts:
