@@ -2,7 +2,7 @@
 This script renames folders and contained JPG files in a specified directory:
 - Replaces spaces with underscores
 - Removes double underscores
-- Renames JPG files to match the folder name
+- Renames JPG files inside the folder to match the folder name
 """
 
 import os
@@ -80,7 +80,7 @@ def run_interactive():
     
     # Path input prompt
     print("=== Folder and File Name Corrector ===")
-    path = input("Enter the relative or absolute path to the directory\n(ENTER for current directory): ")
+    path = input("Enter the relative or absolute path to the directory\n(ENTER for directory): ")
     
     if not path:
         path = "."

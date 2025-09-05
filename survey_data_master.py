@@ -40,6 +40,8 @@ if __name__ == "__main__":
         #("survey_data_processor.py", False),
         #("GML_slicer.py", False), # externer Skriptaufruf noch nicht validiert!
         #("gml_distributor.py", False), # externer Skriptaufruf noch nicht validiert!
+
+        #data_augmentator(output_dir, 10)  # augment images in output_dir the number sets the number of augmentations per image
         # HIER DIE DATA AUGMENTATION SKRIPTE EINFÜGEN
 
         #("convert_to_bw.py", False),
