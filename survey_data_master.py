@@ -3,10 +3,14 @@ Master script to execute the entire survey data processing workflow.
 Executes the following steps in order:
 1. fill_missing_coordinates
 2. survey_summary
-3. survey_data_processor
-4. convert_to_bw
-5. image_collector
-6. selective_training_dataset_generator
+3. forms_survey_summary
+4. survey_data_processor
+5. GML_slicer.py
+6. gml_distributor.py
+7. data_augmentator.py
+8. convert_to_bw.py
+9. image_collector.py
+10. selective_training_dataset_generator.py
 
 - To ensure the input of selective_training_dataset_generator.py, is executed interactively pty.spawn is used.
   The pty library might cause some malfunctions in e. g. windows, so it is recommended to run this script in a Unix-like environment (Linux or macOS).
@@ -45,13 +49,13 @@ if __name__ == "__main__":
     downloads_dir = os.path.join(script_dir, "training_datasets/colored")
     
     scripts = [
-        #("fill_missing_coordinates.py", False),
+        #("fill_missing_coordinates.py", False), 
         #("survey_summary.py", False),
         #("forms_survey_summary.py", False)
         #("survey_data_processor.py", False),
-        #("GML_slicer.py", False), # externer Skriptaufruf noch nicht validiert!
-        #("gml_distributor.py", False), # externer Skriptaufruf noch nicht validiert!
-        ("data_augmentator.py", False, ["--dir", downloads_dir]),  # Pass Downloads directory directly
+        #("GML_slicer.py", False), # external script-execution not yet validated!
+        #("gml_distributor.py", False), # external script-execution not yet validated!
+        ("data_augmentator.py", False, ["--dir", downloads_dir]),  # Pass directory to be augmented directly
         #("convert_to_bw.py", False),
         #("image_collector.py", False),
         #("selective_training_dataset_generator.py", True) #can be activated if needed
