@@ -9,7 +9,7 @@ EXPLANATION OF SUBSCRIPTS:
     transform_address_to_coordinates.py:    This script transforms and returns a given address into coordinates in WGS84.
     download_GM_orthophoto.py               This script downloads a Google-Maps image of a given coordinate at the highest resolution & zoom possible.  
     download_GSV_photo.py                   This script downloads the nearest Google-Street-View image to a given coordinate (which should represent a house),
-                                            adjusting heading, fov and pitch, to capture the building the best way possible. 
+                                            adjusting heading, fov, to capture the building the best way possible. Pitch is set to 10 as default.
     download_LGL_1968_orthophoto.py         This script downloads a 20x20 m DOP of the year 1968 for a given coordinate in Baden-Wuerttemberg.
     download_LGL_1975_ohrthophoto.py        This script downloads a 20x20 m DOP of the year 1975 for a given coordinate in Baden-Wuerttemberg.
                                             UNFORTUNATELY there are currently some server issues at LGL, which causes  malfunction in data-provision.
@@ -61,7 +61,7 @@ from address_finder_from_coordinates import reverse_geocode
 from double_image_deleter import delete_duplicate_images
 from download_data_distributor import distribute_downloaded_data
 
-from config import API_KEY
+from config import API_KEY, API_KEY_GM
 
 
 
@@ -135,7 +135,7 @@ def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download 
     if output_dir is None:
         output_dir = create_directory(f"{latitude}, {longitude}")
     print(f"Directory created: {output_dir}")
-    # get_GM_DOP_by_coord(API_KEY, latitude, longitude, folder=output_dir)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
+    #get_GM_DOP_by_coord(API_KEY_GM, latitude, longitude, folder=output_dir)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
     get_GM_DOP_by_bbox(*get_building_polygon_for_coords(latitude, longitude), folder=output_dir) # --> load GM-DOP for bbox  
     get_GSV_photo(API_KEY, latitude, longitude, folder=output_dir) # load GSV-image
     get_LGL_1960s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 60s

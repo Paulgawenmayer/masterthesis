@@ -1,6 +1,6 @@
 """
 This script returns a bounding-box capturing the building nearest to given coordinates. This is to 
-prepare the best frame for the download_GM_orthophoto.py script
+prepare the best frame for the download_GM_orthophoto.py script in the download_master.py
 """
 
 import osmnx as ox

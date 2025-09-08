@@ -1,5 +1,7 @@
 """
-This script downloads a Google-Maps-Tile of a given coordinate or bbox at the highest resolution & zoom possible.  
+This script downloads a Google-Maps-Tile of a given coordinate or bbox at the highest resolution & zoom possible. 
+As Google has changed its Terms and conditions (only projects created before 8th of July. 2025 can request images from Static Maps API), 
+another API_KEY (from an older Project) has to be used here. This one is NOT free in usage though, so do not use it too much!
 """
 
 import requests
@@ -15,13 +17,17 @@ from geopy.distance import geodesic
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_dir)
 
-from config import API_KEY
+from config import API_KEY_GM
 
 # Set export path
 export_folder = os.path.join(script_dir, "Downloads", "Maps")
 os.makedirs(export_folder, exist_ok=True)
 
 def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height=200, folder=None):
+    """
+    This function downloads a Google Maps DOP image for a specific coordinate.
+    """
+    
     if folder is None:
         folder = export_folder
 
@@ -36,6 +42,7 @@ def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height
         f"maptype=satellite&"
         f"key={api_key}"
     )
+    print(url)
 
     response = requests.get(url)
 
@@ -49,9 +56,11 @@ def get_GM_DOP_by_coord(api_key, latitude, longitude, zoom=20, width=200, height
         #plt.imshow(Image.open(io.BytesIO(response.content)))
         #plt.axis('off')
         #plt.show()
+        
     else:
         print(f"HTTP Error: {response.status_code}")
-        
+        print(f"Response content: {response.text}")
+
 def meters_per_pixel(zoom: int, latitude: float) -> float:
     earth_circumference = 40075016.686  # meters
     return earth_circumference * cos(latitude * pi / 180) / (2 ** (zoom + 8))
@@ -68,7 +77,10 @@ def calculate_pixel_dimensions(lat1, lon1, lat2, lon2, zoom=20, scale=2, max_dim
 
     return width_px, height_px
 
-def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY, zoom=20, scale=2, folder=None):
+def get_GM_DOP_by_bbox(lat1, lon1, lat2, lon2, api_key=API_KEY_GM, zoom=20, scale=2, folder=None):
+    """
+    This function downloads a Google Maps DOP image for a specific bounding box.
+    """
     if folder is None:
         folder = export_folder
 
@@ -136,7 +148,7 @@ if __name__ == "__main__":
     elif len(coords) == 2:
         lat, lon = coords
         print(f"\n📍 coordinates registered: {lat}, {lon}")
-        get_GM_DOP_by_coord(API_KEY, lat, lon)
+        get_GM_DOP_by_coord(API_KEY_GM, lat, lon)
     elif len(coords) == 4:
         lat1, lon1, lat2, lon2 = coords
         print(f"\nBBOX registered: NW=({lat1},{lon1}), SE=({lat2},{lon2})")
