@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jun 10 15:00:31 2025
-
-@author: paulmayer
-
 This script downloads the nearest Google-Street-View image to a given coordinate (which should belong to a house),
 adjusting heading, fov and pitch, to capture the building the best way possible. 
 """

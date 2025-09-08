@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed Jun 11 14:59:11 2025
-
-@author: paulmayer
-
 CIR = COLOR-Infrared
 This script downloads the latest 20x20m DOP for a given coordinate in Baden-Wuerttemberg as CIR.
 

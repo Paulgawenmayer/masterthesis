@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jun 10 16:12:21 2025
-
-@author: paulmayer
-
 This script downloads the latest 20x20 m DOP for a given coordinate in Baden-Wuerttemberg.
 """
 

@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jun 10 12:37:17 2025
-
-@author: paulmayer
-
 This script downloads a Google-Maps-Tile of a given coordinate or bbox at the highest resolution & zoom possible.  
 """
 

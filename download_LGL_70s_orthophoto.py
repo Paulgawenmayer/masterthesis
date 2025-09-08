@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jun 13 13:59:51 2025
-
-@author: paulmayer
-
 This script downloads a 20x20 m DOP of a year in the 70´s for a given coordinate in Baden-Wuerttemberg.
 """
 

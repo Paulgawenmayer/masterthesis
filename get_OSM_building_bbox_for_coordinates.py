@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jun 17 11:06:31 2025
-
-@author: paulmayer
-
 This script returns a bounding-box capturing the building nearest to given coordinates. This is to 
 prepare the best frame for the download_GM_orthophoto.py script
 """

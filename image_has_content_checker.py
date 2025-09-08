@@ -1,11 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jun 13 13:05:00 2025
-
-@author: paulmayer
-
-
     Checks if an image appears visually empty (white/bright). Important as LGL Server provides 10 layers per decade,
     of which most will return only a blank tile for a given coordinate. This script ensures that only tiles with content
     will be downloaded. 

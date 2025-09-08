@@ -1,8 +1,4 @@
 """
-Created on Tue Jun 10 12:19:02 2025
-
-@author: paulmayer
-
 This script scans a specified directory for image files and removes duplicates based on their content.
 It uses a hash function to identify duplicates, ensuring that only unique images remain in the directory.
 """
