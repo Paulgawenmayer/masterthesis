@@ -10,16 +10,16 @@ EXPLANATION OF SUBSCRIPTS:
     download_GM_orthophoto.py               This script downloads a Google-Maps image of a given coordinate at the highest resolution & zoom possible.  
     download_GSV_photo.py                   This script downloads the nearest Google-Street-View image to a given coordinate (which should represent a house),
                                             adjusting heading, fov, to capture the building the best way possible. Pitch is set to 10 as default.
-    download_LGL_1968_orthophoto.py         This script downloads a 20x20 m DOP of the year 1968 for a given coordinate in Baden-Wuerttemberg.
-    download_LGL_1975_ohrthophoto.py        This script downloads a 20x20 m DOP of the year 1975 for a given coordinate in Baden-Wuerttemberg.
+    download_LGL_1968_orthophoto.py         This script downloads either a 20x20 m DOP of a year in the 60s for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
+    download_LGL_1975_orthophoto.py        This script downloads either a 20x20 m DOP of a year in the 70s for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
                                             UNFORTUNATELY there are currently some server issues at LGL, which causes  malfunction in data-provision.
-    download_LGL_1984_orthophoto.py         This script downloads a 20x20 m DOP of the year 1984 for a given coordinate in Baden-Wuerttemberg.
-    download_LGL_1995_orthophoto.py         This script downloads a 20x20 m DOP of the year 1995 for a given coordinate in Baden-Wuerttemberg.
-    download_LGL_2000_orthophoto.py         This script downloads a 20x20 m DOP of the year 2000 for a given coordinate in Baden-Wuerttemberg.
-    download_LGL_2007_2023_orthophoto.py    This script downloads several 20x20 m DOP's of different years for a given coordinate in Baden-Wuerttemberg.
-    download_LGL_latest_orthophoto.py       This script downloads the latest 20x20 m DOP for a given coordinate in Baden-Wuerttemberg.
-    download_LGL_CIR_orthophoto.py          This script downloads the latest 20x20m DOP for a given coordinate in Baden-Wuerttemberg as CIR.
-    download_LGL_grayscale_orthophoto.py    This script downloads the latest DOP as 20x20 m for a given coordinate in in Baden-Wuerttemberg in grayscale format
+    download_LGL_1984_orthophoto.py         This script downloads either a 20x20 m DOP of a year in the 80s for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
+    download_LGL_1995_orthophoto.py         This script downloads either a 20x20 m DOP of a year in the 90s for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
+    download_LGL_2000_orthophoto.py         This script downloads either a 20x20 m DOP of a year in the 2000s for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
+    download_LGL_2007_2023_orthophoto.py    This script downloads several 20x20 m DOP's of different years for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
+    download_LGL_latest_orthophoto.py       This script downloads the latest 20x20 m DOP for a given coordinate in Baden-Wuerttemberg or a bbox-based image.
+    download_LGL_CIR_orthophoto.py          This script downloads the latest 20x20m DOP for a given coordinate in Baden-Wuerttemberg as CIR or a bbox-based image.
+    download_LGL_grayscale_orthophoto.py    This script downloads the latest DOP as 20x20 m for a given coordinate in in Baden-Wuerttemberg in grayscale format or a bbox-based image.
     download_data_distributor.py            This script distributes downloaded data from the "Downloads" folder to the "training_datasets/colored" directory.
 
 USAGE: 
