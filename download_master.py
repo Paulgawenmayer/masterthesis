@@ -47,15 +47,15 @@ sys.path.append(script_dir)
 from transform_address_to_coordinates import get_coordinates, validate_address
 from download_GM_orthophoto import get_GM_DOP_by_coord, get_GM_DOP_by_bbox
 from download_GSV_photo import get_GSV_photo
-from download_LGL_60s_orthophoto import get_LGL_1960s_DOP
-from download_LGL_70s_orthophoto import get_LGL_1970s_DOP
-from download_LGL_80s_orthophoto import get_LGL_1980s_DOP
-from download_LGL_90s_orthophoto import get_LGL_1990s_DOP
-from download_LGL_2000s_orthophoto import get_LGL_2000s_DOP
-from download_LGL_2007_2023_orthophoto import get_LGL_2007_2023_DOP
-from download_LGL_latest_orthophoto import get_latest_LGL_DOP
-from download_LGL_CIR_orthophoto import get_LGL_CIR_DOP
-from download_LGL_grayscale_orthophoto import get_LGL_grayscale_DOP
+from download_LGL_60s_orthophoto import get_LGL_1960s_DOP_by_coord, get_LGL_1960s_DOP_by_bbox
+from download_LGL_70s_orthophoto import get_LGL_1970s_DOP_by_coord, get_LGL_1970s_DOP_by_bbox
+from download_LGL_80s_orthophoto import get_LGL_1980s_DOP_by_coord, get_LGL_1980s_DOP_by_bbox
+from download_LGL_90s_orthophoto import get_LGL_1990s_DOP_by_coord, get_LGL_1990s_DOP_by_bbox
+from download_LGL_2000s_orthophoto import get_LGL_2000s_DOP_by_coord, get_LGL_2000s_DOP_by_bbox
+from download_LGL_2007_2023_orthophoto import get_LGL_2007_2023_DOP_by_coord, get_LGL_2007_2023_DOP_by_bbox
+from download_LGL_latest_orthophoto import get_latest_LGL_DOP_by_coord, get_latest_LGL_DOP_by_bbox
+from download_LGL_CIR_orthophoto import get_LGL_CIR_DOP_by_coord, get_LGL_CIR_DOP_by_bbox
+from download_LGL_grayscale_orthophoto import get_LGL_grayscale_DOP_by_coord, get_LGL_grayscale_DOP_by_bbox
 from get_OSM_building_bbox_for_coordinates import get_building_polygon_for_coords
 from address_finder_from_coordinates import reverse_geocode
 from double_image_deleter import delete_duplicate_images
@@ -135,19 +135,41 @@ def get_images_by_coordinates(latitude, longitude, output_dir=None): # Download 
     if output_dir is None:
         output_dir = create_directory(f"{latitude}, {longitude}")
     print(f"Directory created: {output_dir}")
+    
+    # Get building polygon (bounding box) for the given coordinates
+    bbox = get_building_polygon_for_coords(latitude, longitude)
+    
+    # Download images using the bbox functions
     #get_GM_DOP_by_coord(API_KEY_GM, latitude, longitude, folder=output_dir)  # --> load GM-DOP for only one coordinate and NOT for a building with its dimensions
-    get_GM_DOP_by_bbox(*get_building_polygon_for_coords(latitude, longitude), folder=output_dir) # --> load GM-DOP for bbox  
-    get_GSV_photo(API_KEY, latitude, longitude, folder=output_dir) # load GSV-image
-    get_LGL_1960s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 60s
-    get_LGL_1970s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 70s
-    get_LGL_1980s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 80s
-    get_LGL_1990s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 90s
-    get_LGL_2000s_DOP(latitude, longitude, output_dir=output_dir) # load all available images for the 2000s
-    get_LGL_2007_2023_DOP(latitude, longitude, output_dir=output_dir) # load all available images from 2007-2023
-    get_latest_LGL_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-DOP
-    get_LGL_CIR_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-CIR-DOP
-    get_LGL_grayscale_DOP(latitude, longitude, output_dir=output_dir) # load latest LGL-Grayscale-DOP
-    delete_duplicate_images(output_dir)  # delete double images in output_dir
+    get_GM_DOP_by_bbox(*bbox, folder=output_dir) # --> load GM-DOP for bbox  
+    
+    get_GSV_photo(API_KEY, latitude, longitude, folder=output_dir) # load GSV-image (no bbox version available)
+    
+    # Historical LGL orthophotos - currently using bbox method
+    #get_LGL_1960s_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load all available images for the 60s
+    get_LGL_1960s_DOP_by_bbox(*bbox, output_dir=output_dir) # load all available images for the 60s using bbox
+    #get_LGL_1970s_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load all available images for the 70s
+    get_LGL_1970s_DOP_by_bbox(*bbox, output_dir=output_dir) # load all available images for the 70s using bbox    
+    #get_LGL_1980s_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load all available images for the 80s
+    get_LGL_1980s_DOP_by_bbox(*bbox, output_dir=output_dir) # load all available images for the 80s using bbox   
+    #get_LGL_1990s_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load all available images for the 90s
+    get_LGL_1990s_DOP_by_bbox(*bbox, output_dir=output_dir) # load all available images for the 90s using bbox
+    #get_LGL_2000s_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load all available images for the 2000s
+    get_LGL_2000s_DOP_by_bbox(*bbox, output_dir=output_dir) # load all available images for the 2000s using bbox 
+    #get_LGL_2007_2023_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load all available images from 2007-2023
+    get_LGL_2007_2023_DOP_by_bbox(*bbox, output_dir=output_dir) # load all available images from 2007-2023 using bbox
+
+
+    # Additional image sources - currently using bbox method
+    #get_latest_LGL_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load latest LGL-DOP
+    get_latest_LGL_DOP_by_bbox(*bbox, output_dir=output_dir) # load latest LGL-DOP using bbox
+    #get_LGL_CIR_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load latest LGL-CIR-DOP
+    get_LGL_CIR_DOP_by_bbox(*bbox, output_dir=output_dir) # load latest LGL-CIR-DOP using bbox
+    #get_LGL_grayscale_DOP_by_coord(latitude, longitude, output_dir=output_dir) # load latest LGL-Grayscale-DOP
+    get_LGL_grayscale_DOP_by_bbox(*bbox, output_dir=output_dir) # load latest LGL-Grayscale-DOP using bbox
+
+    # further processing
+    delete_duplicate_images(output_dir)  # delete double images in output_dir. This is necessary, as especially get_LGL_2007_2023_DOP_by_bbox delivers images of different years, that are the same.
     # distribute_downloaded_data(os.path.join(script_dir, "Downloads"), os.path.join(script_dir, "training_datasets", "colored")) # distributes image-data form downlaod-section to training_datasets
 
 def is_coordinate_input(user_input):
