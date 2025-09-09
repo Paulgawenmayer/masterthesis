@@ -1,15 +1,17 @@
 """
-In order to work as intended, this script needs to be executed in Terminal.
-
 This script copies the training datasets from 'training_datasets' to 'selective_training_datasets',
-filters the datasets based on user-defined criteria, and allows the user to choose between filtering by image
-or by attributes in the address data CSV files. 
+filters the datasets based on user-defined criteria, and allows the user to choose between filtering by image,
+by attributes in the address data CSV files, or by specific file conditions. 
 
 Filtering by image: Removes directories that do not contain any images from the 'images' directory, 
 while filtering by attributes checks for specific criteria in the CSV files such as insulation methods and glazing types.
 
 Filtering by attributes: Checks for specific criteria in the CSV files such as insulation methods and glazing types.
 Only directories that meet the criteria will be kept in the 'colored' and 'BW' directories.
+
+Filtering by condition: Checks for the presence of specific files (e.g., "StreetView.png") in each directory.
+Only directories that contain the required files will be kept in the output directories.
+
 This script is designed to be run in a directory structure where the 'training_datasets' directory
 is located at the same level as this script.    
 """
@@ -178,8 +180,68 @@ def choose_by_attributes():
             print(f"Cleanup Progress: |{bar}| {percent}% ({idx}/{total_cleanup})", end='\r' if idx < total_cleanup else '\n')
     print("Image cleanup complete.")
 
+def choose_by_condition():
+    """
+    Filters the datasets based on the presence of a StreetView.png file in each directory.
+    Only keeps directories that contain a StreetView.png file.
+    """
+    print("Filtering datasets by presence of StreetView.png...")
+    
+    for dataset_dir in [COLORED, BW]:
+        if not os.path.exists(dataset_dir):
+            continue
+            
+        subdirs = [subdir for subdir in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, subdir))]
+        total = len(subdirs)
+        
+        for idx, subdir in enumerate(subdirs, 1):
+            subdir_path = os.path.join(dataset_dir, subdir)
+            
+            # Check if any file in the directory ends with StreetView.png
+            has_streetview = False
+            for file in os.listdir(subdir_path):
+                if file.endswith("StreetView.png"):
+                    has_streetview = True
+                    break
+                    
+            if not has_streetview:
+                shutil.rmtree(subdir_path)
+                print(f"Removed {subdir_path} (no StreetView.png file)")
+                
+            # Progress bar
+            percent = int((idx / total) * 100)
+            bar = ('#' * (percent // 2)).ljust(50)
+            print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
+    
+    # Cleanup images folder to match the filtered datasets
+    print("\nCleaning up images folder...")
+    colored_images = set()
+    if os.path.exists(COLORED):
+        for subdir in os.listdir(COLORED):
+            subdir_path = os.path.join(COLORED, subdir)
+            if os.path.isdir(subdir_path):
+                for file in os.listdir(subdir_path):
+                    colored_images.add(file)
+                    
+    if os.path.exists(IMAGES):
+        images_list = list(os.listdir(IMAGES))
+        total_cleanup = len(images_list)
+        
+        for idx, img_file in enumerate(images_list, 1):
+            if img_file not in colored_images:
+                img_path = os.path.join(IMAGES, img_file)
+                os.remove(img_path)
+                print(f"Removed {img_path} (not in any colored subfolder)")
+                
+            percent = int((idx / total_cleanup) * 100)
+            bar = ('#' * (percent // 2)).ljust(50)
+            print(f"Cleanup Progress: |{bar}| {percent}% ({idx}/{total_cleanup})", end='\r' if idx < total_cleanup else '\n')
+            
+    print("Image cleanup complete.")
+    print("Datasets filtered by StreetView.png presence.")
+
 def main():
-    print("Choose mode: 'choose_by_image' oder 'choose_by_attributes'")
+    print("Choose mode: 'choose_by_image', 'choose_by_attributes', or 'choose_by_condition'")
     choice = input("> ").strip()
     if choice == 'choose_by_image':
         choose_by_image()
@@ -187,6 +249,9 @@ def main():
     elif choice == 'choose_by_attributes':
         choose_by_attributes()
         print("Datasets filtered by attributes.")
+    elif choice == 'choose_by_condition':
+        choose_by_condition()
+        print("Datasets filtered by StreetView.png presence.")
     else:
         print("Error: no valid choice.")
 
