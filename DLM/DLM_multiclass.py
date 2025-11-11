@@ -33,6 +33,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+import torchvision.models as models
 
 import torchvision.transforms as T
 
@@ -181,27 +182,22 @@ class HousesDataset(Dataset):
     
 
 # Model (Backbone + glass head)
-class DLM_MultiClass(nn.Module):
+resnet = models.resnet18(pretrained=True)
+
+class DLM_MultiClass_ResNet(nn.Module):
     def __init__(self, n_glass_types=len(GLASS_MAP)):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=5, stride=2, padding=2)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=5, stride=2, padding=2)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.pool = nn.MaxPool2d(2)
-        self.adapt = nn.AdaptiveAvgPool2d((4,4))
-        self.fc = nn.Linear(128*4*4, 256)
+        self.backbone = nn.Sequential(*list(resnet.children())[:-1])  # Entfernt die letzte FC-Layer des ResNet
+        self.fc = nn.Linear(512, 256)
         self.glass_head = nn.Linear(256, n_glass_types)
 
     def forward(self, x):
-        x = self.relu(self.conv1(x)); x = self.pool(x)
-        x = self.relu(self.conv2(x)); x = self.pool(x)
-        x = self.relu(self.conv3(x)); x = self.pool(x)
-        x = self.adapt(x)
-        x = x.view(x.size(0), -1)
-        x = self.relu(self.fc(x))
-        g_logits = self.glass_head(x)
+        x = self.backbone(x)           # [batch, 512, 1, 1]
+        x = x.view(x.size(0), -1)      # [batch, 512]
+        x = torch.relu(self.fc(x))     # [batch, 256]
+        g_logits = self.glass_head(x)  # [batch, n_glass_types]
         return g_logits
+    
 
 # Early Stopping für optimiertes Training
 class EarlyStopping:
@@ -588,7 +584,7 @@ def show_random_train_image_with_title(train_folders, title_col=TITLE_COLUMN):
 show_random_train_image_with_title(train_list)
 
 # Model, Loss, Optimizer
-model = DLM_MultiClass().to(DEVICE)
+model = DLM_MultiClass_ResNet().to(DEVICE)
 criterion = nn.CrossEntropyLoss(ignore_index=IGNORE_GLASS_LABEL)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
