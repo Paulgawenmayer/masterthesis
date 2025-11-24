@@ -3,8 +3,8 @@ This script copies the training datasets from 'training_datasets' to 'selective_
 filters the datasets based on user-defined criteria, and allows the user to choose between filtering by image,
 by attributes in the address data CSV files, or by specific file conditions. 
 
-Filtering by image: Removes directories that do not contain any images from the 'images' directory, 
-while filtering by attributes checks for specific criteria in the CSV files such as insulation methods and glazing types.
+Filtering by image: Removes individual image files from 'colored' and 'BW' directories that are not present
+in the 'images' directory, while keeping the directory structure intact.
 
 Filtering by attributes: Checks for specific criteria in the CSV files such as insulation methods and glazing types.
 Only directories that meet the criteria will be kept in the 'colored' and 'BW' directories.
@@ -58,30 +58,47 @@ image_filenames = set(os.listdir(IMAGES)) if os.path.exists(IMAGES) else set()
 
 
 #this function filters the datasets based on the presence of images
-# in the 'images' directory. It removes any subdirectory in both COLORED and BW directories
-# that does not contain any image files that match the filenames in the 'images'
-# directory. This is useful to ensure that only datasets with corresponding images are kept.
+# in the 'images' directory. It removes individual image files from 'colored' and 'BW'
+# directories that are not present in the 'images' directory, while keeping the directory structure.
 def choose_by_image():
+    total_removed = 0
+    total_files_checked = 0
+    
     for dataset_dir in [COLORED, BW]:
         if not os.path.exists(dataset_dir):
             continue
-        subdirs = [subdir for subdir in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, subdir))]
-        total = len(subdirs)
-        for idx, subdir in enumerate(subdirs, 1):
-            subdir_path = os.path.join(dataset_dir, subdir)
-            # Check if any image in subdir matches one in images
-            found = False
-            for file in os.listdir(subdir_path):
-                if file in image_filenames:
-                    found = True
-                    break
-            if not found:
-                shutil.rmtree(subdir_path)
-                print(f"Removed {subdir_path} (no matching image)")
-            # Progress bar (global for filtering)
+        
+        # Collect all image files to check
+        files_to_check = []
+        for root, dirs, files in os.walk(dataset_dir):
+            for file in files:
+                # Skip CSV files and other non-image files
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                    files_to_check.append(os.path.join(root, file))
+        
+        total = len(files_to_check)
+        dataset_name = os.path.basename(dataset_dir)
+        
+        for idx, file_path in enumerate(files_to_check, 1):
+            filename = os.path.basename(file_path)
+            
+            # Remove file if not in images directory
+            if filename not in image_filenames:
+                try:
+                    os.remove(file_path)
+                    total_removed += 1
+                    print(f"Removed {file_path} (not in images directory)")
+                except Exception as e:
+                    print(f"Error removing {file_path}: {e}")
+            
+            total_files_checked += 1
+            
+            # Progress bar
             percent = int((idx / total) * 100)
             bar = ('#' * (percent // 2)).ljust(50)
-            print(f"Filtering Progress: |{bar}| {percent}% ({idx}/{total}) [{dataset_dir}]", end='\r' if idx < total else '\n')
+            print(f"Filtering [{dataset_name}]: |{bar}| {percent}% ({idx}/{total})", end='\r' if idx < total else '\n')
+    
+    print(f"\nFiltering complete. Checked {total_files_checked} files, removed {total_removed} files.")
 
 
 
