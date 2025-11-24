@@ -1,8 +1,6 @@
-# Multi-Task Training Script für "Häuser"-Datensatz
+# Multi-Label Training Script für "Häuser"-Datensatz
 # - Multi-label (6 binäre Merkmale) mit BCEWithLogitsLoss
-# - Multi-class (Verglasungstyp: 3 Klassen) mit CrossEntropyLoss (ignore_index für fehlende Werte)
-# - Regression (Heizwärmebedarf) mit MSELoss (gewichteter Loss, da Wertebereich viel größer als bei anderen Labels)
-# Hinweis: in Colab vorher Google Drive mounten (siehe unten)
+
 
 
 # Vorbereitung Colab: 

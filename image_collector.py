@@ -1,6 +1,6 @@
 """
-This script collects all StreetView images from the 'colored' directory
-and copies them to the 'images' directory. It enables the user to quickly view all StreetView images 
+This script collects all StreetView images and self-shot images from the 'colored' directory
+and copies them to the 'images' directory. It enables the user to quickly view all images 
 in the dataset and select those that are most useful for training.
 """
 
@@ -12,24 +12,24 @@ IMAGES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'training_
 
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
-# Target specific filename ending
-TARGET_SUFFIX = "StreetView.png"
+# Target specific filename endings
+TARGET_SUFFIXES = ["StreetView.png", "Germany.jpg"]
 
 def collect_images(src_dir, dst_dir):
-    # Collect all StreetView image files for progress bar
+    # Collect all matching image files for progress bar
     all_images = []
     for root, dirs, files in os.walk(src_dir):
         for file in files:
-            if file.endswith(TARGET_SUFFIX):
+            if any(file.endswith(suffix) for suffix in TARGET_SUFFIXES):
                 all_images.append((root, file))
     
     total_images = len(all_images)
     
     if total_images == 0:
-        print(f"No files with suffix '{TARGET_SUFFIX}' found in {src_dir}")
+        print(f"No files with suffixes {TARGET_SUFFIXES} found in {src_dir}")
         return
         
-    print(f"Found {total_images} StreetView images to copy")
+    print(f"Found {total_images} images to copy (StreetView + Germany)")
     
     for idx, (root, file) in enumerate(all_images, 1):
         src_file = os.path.join(root, file)
@@ -44,7 +44,7 @@ def collect_images(src_dir, dst_dir):
         bar = ('#' * (percent // 2)).ljust(50)
         print(f"Progress: |{bar}| {percent}% ({idx}/{total_images})", end='\r' if idx < total_images else '\n')
     
-    print(f"\nSuccessfully copied {total_images} StreetView images to {dst_dir}")
+    print(f"\nSuccessfully copied {total_images} images to {dst_dir}")
 
 def main():
     collect_images(COLORED_DIR, IMAGES_DIR)

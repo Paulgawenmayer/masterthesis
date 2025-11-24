@@ -1,5 +1,5 @@
 """
-This script returns the address most likely belonging to given coordinates.
+This script returns the address most likely belonging to given coordinates. This method is the foundation of addres_collecter_for_area.py.
 """
 
 import requests
