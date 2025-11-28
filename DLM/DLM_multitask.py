@@ -1050,7 +1050,7 @@ train_losses_epochs = []
 val_losses_epochs = {'binary': [], 'glass': [], 'heating': [], 'total': []}
 val_metrics_epochs = {'glass_acc': [], 'heating_mae': [], 'heating_rmse': [], 'heating_r2': []}
 
-early_stopping = EarlyStopping(patience=10, min_delta=0.001, restore_best_weights=True)
+early_stopping = EarlyStopping(patience=5, min_delta=0.001, restore_best_weights=True)
 best_val_loss = float('inf')
 
 for epoch in range(1, NUM_EPOCHS + 1):
