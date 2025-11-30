@@ -12,6 +12,9 @@ Only directories that meet the criteria will be kept in the 'colored' and 'BW' d
 Filtering by condition: Checks for the presence of specific files (e.g., "StreetView.png") in each directory.
 Only directories that contain the required files will be kept in the output directories.
 
+Filtering by source: Removes directories from 'colored' and 'BW' that don't contain any images from 'images',
+and removes all files except source images and CSV files from remaining directories.
+
 This script is designed to be run in a directory structure where the 'training_datasets' directory
 is located at the same level as this script.    
 """
@@ -257,18 +260,153 @@ def choose_by_condition():
     print("Image cleanup complete.")
     print("Datasets filtered by StreetView.png presence.")
 
+
+def remove_data_from_training_dataset():
+    """
+    Removes directories and files from 'colored' and 'BW' based on images in 'images' folder.
+    
+    Logic:
+    1. Get all image filenames from 'images' folder (source reference)
+    2. For each subdirectory in 'colored' and 'BW':
+       - Check if it contains at least one image from 'images' folder
+       - If NO: Delete the entire subdirectory
+       - If YES: Keep subdirectory but remove all files EXCEPT:
+         * Images that are in 'images' folder
+         * CSV files
+    """
+    print("\n" + "="*60)
+    print("  REMOVE DATA FROM TRAINING DATASET")
+    print("="*60)
+    print("\nSource: 'images' folder (reference images)")
+    print("Target: 'colored' and 'BW' folders")
+    print("\nLogic:")
+    print("  1. Remove directories WITHOUT any source images")
+    print("  2. In remaining directories, keep ONLY:")
+    print("     - Images from 'images' folder")
+    print("     - CSV files")
+    print("="*60)
+    
+    # Get source image names from 'images' folder
+    if not os.path.exists(IMAGES):
+        print(f"❌ Images folder does not exist: {IMAGES}")
+        return
+    
+    source_image_names = set(os.listdir(IMAGES))
+    print(f"\n✅ Found {len(source_image_names)} images in source folder")
+    
+    total_dirs_removed = 0
+    total_dirs_kept = 0
+    total_files_removed = 0
+    total_files_kept = 0
+    
+    # Process each target directory
+    for dataset_dir in [COLORED, BW]:
+        if not os.path.exists(dataset_dir):
+            print(f"⚠️  Directory does not exist: {dataset_dir}")
+            continue
+        
+        dataset_name = os.path.basename(dataset_dir)
+        print(f"\n📁 Processing: {dataset_name}")
+        
+        subdirs = [d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))]
+        total_subdirs = len(subdirs)
+        
+        if total_subdirs == 0:
+            print(f"  No subdirectories found in {dataset_name}")
+            continue
+        
+        print(f"  Found {total_subdirs} subdirectories")
+        
+        # Step 1: Check each subdirectory
+        for idx, subdir in enumerate(subdirs, 1):
+            subdir_path = os.path.join(dataset_dir, subdir)
+            
+            # Find images in subdirectory that match source
+            found_source_images = set()
+            all_files = []
+            
+            for file in os.listdir(subdir_path):
+                file_path = os.path.join(subdir_path, file)
+                if os.path.isfile(file_path):
+                    all_files.append(file)
+                    if file in source_image_names:
+                        found_source_images.add(file)
+            
+            # Progress bar
+            percent = int((idx / total_subdirs) * 100)
+            bar = ('#' * (percent // 2)).ljust(50)
+            print(f"  Checking: |{bar}| {percent}% ({idx}/{total_subdirs})", end='\r')
+            
+            # Decision: Remove directory or clean it?
+            if len(found_source_images) == 0:
+                # No source images found -> Remove entire directory
+                try:
+                    shutil.rmtree(subdir_path)
+                    total_dirs_removed += 1
+                except Exception as e:
+                    print(f"\n  ⚠️  Error removing directory {subdir}: {e}")
+            else:
+                # Source images found -> Keep directory, but clean files
+                total_dirs_kept += 1
+                files_removed = 0
+                files_kept = 0
+                
+                for file in all_files:
+                    file_path = os.path.join(subdir_path, file)
+                    
+                    # Keep file if:
+                    # 1. It's in source images
+                    # 2. It's a CSV file
+                    should_keep = (
+                        file in source_image_names or
+                        file.lower().endswith('.csv')
+                    )
+                    
+                    if should_keep:
+                        files_kept += 1
+                    else:
+                        try:
+                            os.remove(file_path)
+                            files_removed += 1
+                        except Exception as e:
+                            print(f"\n  ⚠️  Error removing file {file}: {e}")
+                
+                total_files_removed += files_removed
+                total_files_kept += files_kept
+        
+        print(f"\n  ✓ {dataset_name} processed")
+    
+    # Summary
+    print("\n" + "="*60)
+    print("  SUMMARY")
+    print("="*60)
+    print(f"Directories removed: {total_dirs_removed}")
+    print(f"Directories kept: {total_dirs_kept}")
+    print(f"Files removed: {total_files_removed}")
+    print(f"Files kept: {total_files_kept}")
+    print("="*60)
+    print("✅ Dataset cleaning complete!")
+
+
 def main():
-    print("Choose mode: 'choose_by_image', 'choose_by_attributes', or 'choose_by_condition'")
+    print("Choose mode:")
+    print("  1. 'choose_by_image' - Remove images not in 'images' folder")
+    print("  2. 'choose_by_attributes' - Filter by CSV attributes")
+    print("  3. 'choose_by_condition' - Filter by StreetView.png presence")
+    print("  4. 'remove_data' - Remove dirs without source images + clean remaining dirs")
     choice = input("> ").strip()
-    if choice == 'choose_by_image':
+    
+    if choice == 'choose_by_image' or choice == '1':
         choose_by_image()
         print("Datasets filtered by image presence.")
-    elif choice == 'choose_by_attributes':
+    elif choice == 'choose_by_attributes' or choice == '2':
         choose_by_attributes()
         print("Datasets filtered by attributes.")
-    elif choice == 'choose_by_condition':
+    elif choice == 'choose_by_condition' or choice == '3':
         choose_by_condition()
         print("Datasets filtered by StreetView.png presence.")
+    elif choice == 'remove_data' or choice == '4':
+        remove_data_from_training_dataset()
     else:
         print("Error: no valid choice.")
 

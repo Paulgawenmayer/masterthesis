@@ -884,7 +884,7 @@ def evaluate(model, loader):
         "heating_mae": heating_mae,
         "heating_rmse": heating_rmse,
         "heating_r2": heating_r2,
-        "heating_mape": heating_mape,  # Neue Metrik
+        "heating_mape": heating_mape,  
         "all_heating_targets": all_heating_targets,
         "all_heating_preds": all_heating_preds
     }
@@ -895,6 +895,7 @@ val_loss_h_epochs = []
 val_heating_mae_epochs = []
 val_heating_rmse_epochs = []
 val_heating_r2_epochs = []
+val_heating_mape_epochs = []  
 
 # Early Stopping initialisieren
 early_stopping = EarlyStopping(patience=5, min_delta=0.00001, restore_best_weights=True)
@@ -937,12 +938,14 @@ for epoch in range(1, NUM_EPOCHS+1):
     val_heating_mae_epochs.append(val_stats['heating_mae'] if val_stats['heating_mae'] is not None else np.nan)
     val_heating_rmse_epochs.append(val_stats['heating_rmse'] if val_stats['heating_rmse'] is not None else np.nan)
     val_heating_r2_epochs.append(val_stats['heating_r2'] if val_stats['heating_r2'] is not None else np.nan)
+    val_heating_mape_epochs.append(val_stats['heating_mape'] if val_stats['heating_mape'] is not None else np.nan) 
 
     # Heating metrics
     if val_stats['heating_mae'] is not None:
         print(f"Heating MAE: {val_stats['heating_mae']:.2f} kWh")
         print(f"Heating RMSE: {val_stats['heating_rmse']:.2f} kWh")
         print(f"Heating R²: {val_stats['heating_r2']:.3f}")
+        print(f"Heating MAPE: {val_stats['heating_mape']:.2f}%")  
     else:
         print("No valid heating values in validation set (skipping heating metrics)")
 
@@ -1058,10 +1061,13 @@ def test_model_and_write_results(model, test_loader, folders_list=None, results_
         heating_mae = mean_absolute_error(targets_denorm, preds_denorm)
         heating_rmse = math.sqrt(mean_squared_error(targets_denorm, preds_denorm))
         heating_r2 = r2_score(targets_denorm, preds_denorm)
+        
+        heating_mape = np.mean(np.abs((targets_denorm - preds_denorm) / targets_denorm)) * 100
     else:
         heating_mae = None
         heating_rmse = None
         heating_r2 = None
+        heating_mape = None  
 
     avg_loss_h = np.mean(losses) if losses else 0.0
 
@@ -1070,6 +1076,7 @@ def test_model_and_write_results(model, test_loader, folders_list=None, results_
         "heating_mae": heating_mae,
         "heating_rmse": heating_rmse,
         "heating_r2": heating_r2,
+        "heating_mape": heating_mape, 
         "all_heating_targets": all_heating_targets,
         "all_heating_preds": all_heating_preds
     }
@@ -1078,7 +1085,8 @@ def test_model_and_write_results(model, test_loader, folders_list=None, results_
 ensure_dir(CHARTS_DIR)
 
 def plot_heating_training_metrics(train_losses_epochs, val_loss_h_epochs, val_heating_mae_epochs, 
-                                 val_heating_rmse_epochs, val_heating_r2_epochs, test_stats, save_fig=True):
+                                 val_heating_rmse_epochs, val_heating_r2_epochs, val_heating_mape_epochs,  
+                                 test_stats, save_fig=True):
     """
     Plots training loss curves, heating metrics over epochs, and prediction scatter plots for heating regression.
     """
@@ -1095,11 +1103,12 @@ def plot_heating_training_metrics(train_losses_epochs, val_loss_h_epochs, val_he
         plt.savefig(os.path.join(CHARTS_DIR, "heating_loss_curve.png"), dpi=300, bbox_inches='tight')
     plt.show()
 
-    # 2. MAE and RMSE over epochs
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    # ========== 2. MAE, RMSE, R², MAPE over epochs (jetzt 4 Subplots!) ==========
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))  # ← Geändert zu 2x2
+    
+    epochs = np.arange(1, len(val_heating_mae_epochs)+1)
     
     # MAE
-    epochs = np.arange(1, len(val_heating_mae_epochs)+1)
     valid_mask = ~np.isnan(val_heating_mae_epochs)
     if np.any(valid_mask):
         ax1.plot(epochs[valid_mask], np.array(val_heating_mae_epochs)[valid_mask], color='purple', marker='o')
@@ -1127,6 +1136,14 @@ def plot_heating_training_metrics(train_losses_epochs, val_loss_h_epochs, val_he
         ax3.grid(alpha=0.2)
         ax3.set_ylim([-1, 1])
 
+    valid_mask = ~np.isnan(val_heating_mape_epochs)
+    if np.any(valid_mask):
+        ax4.plot(epochs[valid_mask], np.array(val_heating_mape_epochs)[valid_mask], color='red', marker='o')
+        ax4.set_xlabel('Epoch')
+        ax4.set_ylabel('MAPE (%)')
+        ax4.set_title('Mean Absolute Percentage Error')
+        ax4.grid(alpha=0.2)
+
     plt.tight_layout()
     if save_fig:
         plt.savefig(os.path.join(CHARTS_DIR, "heating_metrics_curves.png"), dpi=300, bbox_inches='tight')
@@ -1153,9 +1170,14 @@ def plot_heating_training_metrics(train_losses_epochs, val_loss_h_epochs, val_he
             plt.legend()
             plt.grid(alpha=0.3)
             
-            # Add metrics as text
+            # ========== Add metrics as text (inkl. MAPE!) ==========
             if test_stats['heating_mae'] is not None:
-                plt.text(0.05, 0.95, f"MAE: {test_stats['heating_mae']:.2f} kWh\nRMSE: {test_stats['heating_rmse']:.2f} kWh\nR²: {test_stats['heating_r2']:.3f}", 
+                metrics_text = (f"MAE: {test_stats['heating_mae']:.2f} kWh\n"
+                              f"RMSE: {test_stats['heating_rmse']:.2f} kWh\n"
+                              f"R²: {test_stats['heating_r2']:.3f}\n"
+                              f"MAPE: {test_stats['heating_mape']:.2f}%")  
+                
+                plt.text(0.05, 0.95, metrics_text, 
                         transform=plt.gca().transAxes, verticalalignment='top',
                         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
             
@@ -1187,6 +1209,7 @@ if test_stats['heating_mae'] is not None:
     print(f"Heating MAE: {test_stats['heating_mae']:.2f} kWh")
     print(f"Heating RMSE: {test_stats['heating_rmse']:.2f} kWh")
     print(f"Heating R²: {test_stats['heating_r2']:.3f}")
+    print(f"Heating MAPE: {test_stats['heating_mape']:.2f}%")  
 
 print("Ergebnisse geschrieben nach:", RESULTS_DIR)
 
@@ -1197,6 +1220,7 @@ plot_heating_training_metrics(
     val_heating_mae_epochs=val_heating_mae_epochs,
     val_heating_rmse_epochs=val_heating_rmse_epochs,
     val_heating_r2_epochs=val_heating_r2_epochs,
+    val_heating_mape_epochs=val_heating_mape_epochs, 
     test_stats=test_stats,
     save_fig=True
 )

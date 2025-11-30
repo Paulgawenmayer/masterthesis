@@ -143,17 +143,39 @@ def denormalize_heating_log(normalized_values, mean, std):
     return np.exp(log_values)
 
 # PUNKT 1: Stratified Split 
-def heating_stratified_split(all_folders, test_frac=0.15, val_frac=0.15, random_state=42):
+def multitask_stratified_split(all_folders, test_frac=0.15, val_frac=0.15, random_state=42):
     """
-    Stratifizierter Split basierend auf Heizwärmebedarf-Quartilen.
+    Kombinierter stratifizierter Split für Multi-Task Training.
+    
+    Priorität:
+    1. Glass-Typen (höchste Priorität wegen Klassenungleichgewicht)
+    2. Seltene Binary Labels (Fenster fassadenbündig)
+    3. Heating-Quartile (niedrigste Priorität)
+    
+    Garantiert:
+    - Einfachverglasung in Train UND Val
+    - Alle Glass-Typen in allen Splits
+    - Ausgewogene Verteilung seltener Binary Labels
     """
-    heating_values = []
+    
+    # Sammle alle Labels
+    folder_labels = {}
+    einfach_folders = []
+    rare_binary_col = "Fenster fassadenbündig"
+    
     for folder in all_folders:
+        # CSV laden
         csv_path = None
         for f in os.listdir(folder):
             if f.lower().endswith(".csv"):
                 csv_path = os.path.join(folder, f)
                 break
+        
+        # Default-Werte
+        glass_type = "MISSING"
+        has_rare_binary = False
+        heating_value = float('nan')
+        
         if csv_path:
             try:
                 df = pd.read_csv(csv_path, sep=";")
@@ -161,81 +183,152 @@ def heating_stratified_split(all_folders, test_frac=0.15, val_frac=0.15, random_
                 try:
                     df = pd.read_csv(csv_path)
                 except:
-                    heating_values.append(float('nan'))
-                    continue
+                    df = pd.DataFrame()
+            
+            # 1. Glass Type (höchste Priorität)
+            if GLASS_COL in df.columns:
+                vals = df[GLASS_COL].astype(str).values
+                for v in vals:
+                    v_str = str(v).strip()
+                    if v_str != "" and v_str.lower() != "nan":
+                        if v_str in GLASS_MAP:
+                            glass_type = v_str
+                            break
+            
+            # 2. Seltene Binary Labels
+            if rare_binary_col in df.columns:
+                if df[rare_binary_col].astype(str).str.contains("checked", case=False, na=False).any():
+                    has_rare_binary = True
+            
+            # 3. Heating (niedrigste Priorität)
             if HEATING_DEMAND in df.columns:
                 vals = pd.to_numeric(df[HEATING_DEMAND], errors='coerce').values
-                found = False
                 for v in vals:
                     if not pd.isna(v) and v > 0:
-                        heating_values.append(float(v))
-                        found = True
+                        heating_value = float(v)
                         break
-                if not found:
-                    heating_values.append(float('nan'))
-            else:
-                heating_values.append(float('nan'))
-        else:
-            heating_values.append(float('nan'))
+        
+        folder_labels[folder] = {
+            "glass": glass_type,
+            "has_rare_binary": has_rare_binary,
+            "heating": heating_value
+        }
+        
+        if glass_type == "Einfachverglasung":
+            einfach_folders.append(folder)
     
-    # Stratifizierungs-Labels erstellen
-    heating_values = np.array(heating_values)
-    valid_mask = ~np.isnan(heating_values)
+    # Berechne Heating-Quartile für verfügbare Werte
+    heating_values = [v["heating"] for v in folder_labels.values()]
+    heating_values_valid = [h for h in heating_values if not np.isnan(h)]
     
-    if valid_mask.sum() > 1:
-        valid_vals = heating_values[valid_mask]
-        q25, q50, q75 = np.percentile(valid_vals, [25, 50, 75])
-        
-        strat_labels = []
-        for h in heating_values:
-            if np.isnan(h):
-                strat_labels.append("missing")
-            elif h < q25:
-                strat_labels.append("low")
-            elif h < q50:
-                strat_labels.append("medium_low")
-            elif h < q75:
-                strat_labels.append("medium_high")
-            else:
-                strat_labels.append("high")
-        
-        # Stratifizierter Split
-        train_folders, test_folders = train_test_split(
-            all_folders, test_size=test_frac, stratify=strat_labels, random_state=random_state
-        )
-        
-        # Validation split (auch stratifiziert)
-        train_heating = []
-        for folder in train_folders:
-            idx = all_folders.index(folder)
-            train_heating.append(heating_values[idx])
-        
-        train_strat = []
-        for h in train_heating:
-            if np.isnan(h):
-                train_strat.append("missing")
-            elif h < q25:
-                train_strat.append("low")
-            elif h < q50:
-                train_strat.append("medium_low")
-            elif h < q75:
-                train_strat.append("medium_high")
-            else:
-                train_strat.append("high")
-        
-        val_frac_adjusted = val_frac / (1 - test_frac)
-        train_folders, val_folders = train_test_split(
-            train_folders, test_size=val_frac_adjusted, stratify=train_strat, random_state=random_state
-        )
-        
-        return train_folders, val_folders, test_folders
+    if len(heating_values_valid) > 1:
+        q25, q50, q75 = np.percentile(heating_values_valid, [25, 50, 75])
     else:
-        # Fallback: einfacher Random Split
-        print("Warnung: Nicht genug Daten für stratifizierten Split. Verwende Random Split.")
+        q25 = q50 = q75 = 0
+    
+    # Erstelle hierarchische Stratifizierungslabels
+    strat_labels = []
+    folders_list = list(folder_labels.keys())
+    
+    for folder in folders_list:
+        labels = folder_labels[folder]
+        
+        # Hierarchie: Glass > Binary > Heating
+        # Format: "A_glass_B_binary_C_heating"
+        
+        # 1. Glass (Priorität 1)
+        if labels["glass"] == "Einfachverglasung":
+            glass_part = "A_einfach"
+        elif labels["glass"] == "Dreifachverglasung":
+            glass_part = "B_dreifach"
+        elif labels["glass"] == "Zweifachverglasung":
+            glass_part = "C_zweifach"
+        else:
+            glass_part = "D_missing"
+        
+        # 2. Rare Binary (Priorität 2)
+        binary_part = "rare" if labels["has_rare_binary"] else "normal"
+        
+        # 3. Heating (Priorität 3)
+        h = labels["heating"]
+        if np.isnan(h):
+            heating_part = "missing"
+        elif h < q25:
+            heating_part = "low"
+        elif h < q50:
+            heating_part = "med_low"
+        elif h < q75:
+            heating_part = "med_high"
+        else:
+            heating_part = "high"
+        
+        # Kombiniere zu finalem Label
+        strat_group = f"{glass_part}_{binary_part}_{heating_part}"
+        strat_labels.append(strat_group)
+    
+    # Zähle Gruppen
+    from collections import Counter
+    group_counts = Counter(strat_labels)
+    print("\n--- Stratifizierungsgruppen ---")
+    for group, count in sorted(group_counts.items()):
+        print(f"{group}: {count}")
+    
+    # Stratifizierter Split
+    if len(set(strat_labels)) > 1:
+        try:
+            train_folders, test_folders = train_test_split(
+                all_folders, test_size=test_frac, stratify=strat_labels, random_state=random_state
+            )
+            
+            # Val-Split
+            train_strat = [strat_labels[all_folders.index(f)] for f in train_folders]
+            val_frac_adjusted = val_frac / (1 - test_frac)
+            
+            train_folders, val_folders = train_test_split(
+                train_folders, test_size=val_frac_adjusted, stratify=train_strat, random_state=random_state
+            )
+        except ValueError as e:
+            print(f"Warnung: Stratifizierung fehlgeschlagen ({e}). Verwende Random Split.")
+            train_folders, test_folders = train_test_split(all_folders, test_size=test_frac, random_state=random_state)
+            val_frac_adjusted = val_frac / (1 - test_frac)
+            train_folders, val_folders = train_test_split(train_folders, test_size=val_frac_adjusted, random_state=random_state)
+    else:
+        print("Warnung: Nur eine Stratifizierungsgruppe. Verwende Random Split.")
         train_folders, test_folders = train_test_split(all_folders, test_size=test_frac, random_state=random_state)
         val_frac_adjusted = val_frac / (1 - test_frac)
         train_folders, val_folders = train_test_split(train_folders, test_size=val_frac_adjusted, random_state=random_state)
-        return train_folders, val_folders, test_folders
+    
+    # Garantiere Einfachverglasung in Train und Val
+    def has_einfach(split):
+        return any(folder_labels[f]["glass"] == "Einfachverglasung" for f in split)
+    
+    if not has_einfach(train_folders) and einfach_folders:
+        # Hole Einfachverglasung aus Val oder Test
+        candidates = [f for f in val_folders + test_folders if f in einfach_folders]
+        if candidates:
+            f_move = candidates[0]
+            train_folders = list(train_folders) + [f_move]
+            if f_move in val_folders:
+                val_folders = [f for f in val_folders if f != f_move]
+            if f_move in test_folders:
+                test_folders = [f for f in test_folders if f != f_move]
+    
+    if not has_einfach(val_folders) and einfach_folders:
+        candidates = [f for f in train_folders + test_folders if f in einfach_folders]
+        if candidates:
+            f_move = candidates[0]
+            val_folders = list(val_folders) + [f_move]
+            if f_move in train_folders:
+                train_folders = [f for f in train_folders if f != f_move]
+            if f_move in test_folders:
+                test_folders = [f for f in test_folders if f != f_move]
+    
+    print(f"\n--- Finale Aufteilung ---")
+    print(f"Train: {len(train_folders)} | Einfachverglasung: {has_einfach(train_folders)}")
+    print(f"Val:   {len(val_folders)} | Einfachverglasung: {has_einfach(val_folders)}")
+    print(f"Test:  {len(test_folders)}")
+    
+    return train_folders, val_folders, test_folders
 
 # PUNKT 2: Detaillierte Dataset-Analyse-Funktionen 
 
@@ -782,11 +875,28 @@ def evaluate(model, loader):
     all_heating_preds = np.concatenate(all_heating_preds) if all_heating_preds else np.array([])
 
     # Compute metrics
-    # Binary
+    # Binary metrics
     if all_bin_targets.size > 0:
-        prf_bin = precision_recall_fscore_support(all_bin_targets, all_bin_preds, average=None, zero_division=0)
+        prf_bin = precision_recall_fscore_support(all_bin_targets, all_bin_preds, 
+                                                average=None, zero_division=0)
+        
+        # ========== NEU: Per-Label Accuracy ==========
+        per_label_acc = []
+        for i in range(len(BINARY_LABEL_COLUMNS)):
+            acc = (all_bin_preds[:, i] == all_bin_targets[:, i]).mean()
+            per_label_acc.append(acc)
+        per_label_acc = np.array(per_label_acc)
+        
+        # Zusätzliche Metriken
+        macro_acc = per_label_acc.mean()
+        exact_match_acc = np.all(all_bin_preds == all_bin_targets, axis=1).mean()
+        hamming_score = (all_bin_preds == all_bin_targets).mean()
     else:
         prf_bin = None
+        per_label_acc = None
+        macro_acc = None
+        exact_match_acc = None
+        hamming_score = None
 
     # Glass
     mask_valid_glass = all_glass_targets != IGNORE_GLASS_LABEL
@@ -804,29 +914,44 @@ def evaluate(model, loader):
     # Heating
     heating_mask = ~np.isnan(all_heating_targets)
     if heating_mask.sum() > 0:
-        targets_denorm = denormalize_heating_log(all_heating_targets[heating_mask], HEATING_LOG_MEAN, HEATING_LOG_STD)
-        preds_denorm = denormalize_heating_log(all_heating_preds[heating_mask], HEATING_LOG_MEAN, HEATING_LOG_STD)
+        targets_denorm = denormalize_heating_log(all_heating_targets[heating_mask], 
+                                                HEATING_LOG_MEAN, HEATING_LOG_STD)
+        preds_denorm = denormalize_heating_log(all_heating_preds[heating_mask], 
+                                              HEATING_LOG_MEAN, HEATING_LOG_STD)
         heating_mae = mean_absolute_error(targets_denorm, preds_denorm)
         heating_rmse = math.sqrt(mean_squared_error(targets_denorm, preds_denorm))
-        heating_r2 = r2_score(targets_denorm, preds_denorm)
+        
+        # R² nur bei >1 Sample
+        if len(targets_denorm) > 1 and np.var(targets_denorm) > 1e-6:
+            heating_r2 = r2_score(targets_denorm, preds_denorm)
+        else:
+            heating_r2 = None
+        
+        # ========== NEU: MAPE ==========
+        heating_mape = np.mean(np.abs((targets_denorm - preds_denorm) / targets_denorm)) * 100
     else:
-        heating_mae = heating_rmse = heating_r2 = None
+        heating_mae = heating_rmse = heating_r2 = heating_mape = None
 
     return {
-        'losses': {k: np.mean(v) if v else 0.0 for k, v in losses.items()},
-        'binary_prf': prf_bin,
-        'glass_acc': glass_acc,
-        'glass_prf': prf_glass,
-        'heating_mae': heating_mae,
-        'heating_rmse': heating_rmse,
-        'heating_r2': heating_r2,
-        'all_bin_targets': all_bin_targets,
-        'all_bin_preds': all_bin_preds,
-        'all_glass_targets': all_glass_targets,
-        'all_glass_preds': all_glass_preds,
-        'all_heating_targets': all_heating_targets,
-        'all_heating_preds': all_heating_preds
-    }
+    'losses': {k: np.mean(v) if v else 0.0 for k, v in losses.items()},
+    'binary_prf': prf_bin,
+    'binary_per_label_acc': per_label_acc,       
+    'binary_macro_acc': macro_acc,               
+    'binary_exact_match_acc': exact_match_acc,    
+    'binary_hamming_score': hamming_score,        
+    'glass_acc': glass_acc,
+    'glass_prf': prf_glass,
+    'heating_mae': heating_mae,
+    'heating_rmse': heating_rmse,
+    'heating_r2': heating_r2,
+    'heating_mape': heating_mape,                
+    'all_bin_targets': all_bin_targets,
+    'all_bin_preds': all_bin_preds,
+    'all_glass_targets': all_glass_targets,
+    'all_glass_preds': all_glass_preds,
+    'all_heating_targets': all_heating_targets,
+    'all_heating_preds': all_heating_preds
+}
 
 
 # PUNKT 3: Detaillierte Plotting-Funktionen
@@ -970,6 +1095,50 @@ def plot_heating_scatter(y_true, y_pred, save_fig=True):
     plt.show()
 
 
+
+def plot_binary_metrics_with_accuracy(prf_bin, per_label_acc, save_fig=True):
+    """
+    Plottet Precision, Recall, F1 und Accuracy pro Binary Label.
+    
+    Args:
+        prf_bin: Tuple (precision, recall, f1, support) von sklearn
+        per_label_acc: Array mit Accuracy pro Label
+        save_fig: Ob Plot gespeichert werden soll
+    """
+    if prf_bin is None or per_label_acc is None:
+        print("Warnung: Keine Binary-Metriken zum Plotten verfügbar.")
+        return
+    
+    prec, rec, f1, support = prf_bin
+    x = np.arange(len(BINARY_LABEL_COLUMNS))
+    width = 0.2
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # 4 Balken pro Label
+    ax.bar(x - 1.5*width, prec, width, label='Precision', color='blue')
+    ax.bar(x - 0.5*width, rec, width, label='Recall', color='orange')
+    ax.bar(x + 0.5*width, f1, width, label='F1-Score', color='green')
+    ax.bar(x + 1.5*width, per_label_acc, width, label='Accuracy', color='purple')
+    
+    ax.set_xlabel('Binary Label')
+    ax.set_ylabel('Score')
+    ax.set_title('Binary Classification Metrics per Label (inkl. Accuracy)')
+    ax.set_xticks(x)
+    ax.set_xticklabels(BINARY_LABEL_COLUMNS, rotation=45, ha='right')
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+    ax.set_ylim([0, 1.05])
+    
+    plt.tight_layout()
+    if save_fig:
+        ensure_dir(CHARTS_DIR)
+        plt.savefig(os.path.join(CHARTS_DIR, "binary_metrics_with_accuracy.png"), 
+                   dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+
 # Dataset preparation
 all_folders = sorted([os.path.join(ROOT_DIR, d) for d in os.listdir(ROOT_DIR)
                      if os.path.isdir(os.path.join(ROOT_DIR, d))])
@@ -980,7 +1149,7 @@ HEATING_LOG_MEAN, HEATING_LOG_STD = calculate_heating_log_stats(all_folders)
 if len(all_folders) == 1:
     train_list = val_list = test_list = all_folders
 else:
-    train_list, val_list, test_list = heating_stratified_split(
+    train_list, val_list, test_list = multitask_stratified_split(
         all_folders, test_frac=0.15, val_frac=0.15, random_state=SEED
     )
 
@@ -1184,9 +1353,20 @@ def test_model_and_write_results(model, test_loader, folders_list, results_dir=R
                 }
                 
                 # Binary
-                for j, col in enumerate(BINARY_LABEL_COLUMNS):
-                    row[f"{col}_prob"] = float(probs[i, j])
-                    row[f"{col}_pred"] = int(preds_bin[i, j])
+                prf_bin = precision_recall_fscore_support(all_bin_targets, all_bin_preds, 
+                                          average=None, zero_division=0)
+
+                # ========== NEU: Per-Label Accuracy ==========
+                per_label_acc = []
+                for i in range(len(BINARY_LABEL_COLUMNS)):
+                    acc = (all_bin_preds[:, i] == all_bin_targets[:, i]).mean()
+                    per_label_acc.append(acc)
+                per_label_acc = np.array(per_label_acc)
+
+                # Zusätzliche Metriken
+                macro_acc = per_label_acc.mean()
+                exact_match_acc = np.all(all_bin_preds == all_bin_targets, axis=1).mean()
+                hamming_score = (all_bin_preds == all_bin_targets).mean()
                 
                 # Glass
                 row["glass_pred"] = inv_glass.get(int(glass_preds_idx[i]), "UNKNOWN")
@@ -1231,34 +1411,71 @@ def test_model_and_write_results(model, test_loader, folders_list, results_dir=R
         preds_denorm = denormalize_heating_log(all_heating_preds[heating_mask], HEATING_LOG_MEAN, HEATING_LOG_STD)
         heating_mae = mean_absolute_error(targets_denorm, preds_denorm)
         heating_rmse = math.sqrt(mean_squared_error(targets_denorm, preds_denorm))
-        heating_r2 = r2_score(targets_denorm, preds_denorm)
+        
+        # R² nur bei >1 Sample
+        if len(targets_denorm) > 1 and np.var(targets_denorm) > 1e-6:
+            heating_r2 = r2_score(targets_denorm, preds_denorm)
+        else:
+            heating_r2 = None
+        
+        # ========== NEU: MAPE ==========
+        heating_mape = np.mean(np.abs((targets_denorm - preds_denorm) / targets_denorm)) * 100
     else:
-        heating_mae = heating_rmse = heating_r2 = None
+        heating_mae = heating_rmse = heating_r2 = heating_mape = None
 
     return {
-        'binary_prf': prf_bin,
-        'glass_acc': glass_acc,
-        'glass_prf': prf_glass,
-        'heating_mae': heating_mae,
-        'heating_rmse': heating_rmse,
-        'heating_r2': heating_r2,
-        'all_bin_targets': all_bin_targets,
-        'all_bin_preds': all_bin_preds,
-        'all_glass_targets': all_glass_targets,
-        'all_glass_preds': all_glass_preds,
-        'all_heating_targets': all_heating_targets,
-        'all_heating_preds': all_heating_preds
-    }
+    'binary_prf': prf_bin,
+    'binary_per_label_acc': per_label_acc,        
+    'binary_macro_acc': macro_acc,                
+    'binary_exact_match_acc': exact_match_acc,    
+    'binary_hamming_score': hamming_score,        
+    'glass_acc': glass_acc,
+    'glass_prf': prf_glass,
+    'heating_mae': heating_mae,
+    'heating_rmse': heating_rmse,
+    'heating_r2': heating_r2,
+    'heating_mape': heating_mape,                 
+    'all_bin_targets': all_bin_targets,
+    'all_bin_preds': all_bin_preds,
+    'all_glass_targets': all_glass_targets,
+    'all_glass_preds': all_glass_preds,
+    'all_heating_targets': all_heating_targets,
+    'all_heating_preds': all_heating_preds
+}
 
 # Test model
 test_stats = test_model_and_write_results(model, test_loader, test_list)
 
 print("\n===== TEST RESULTS =====")
-print(f"Glass Accuracy: {test_stats['glass_acc']:.3f}" if test_stats['glass_acc'] else "Glass Accuracy: N/A")
-if test_stats['heating_mae']:
+
+# ========== 1. Binary Metrics ==========
+if test_stats.get('binary_exact_match_acc') is not None:
+    print(f"Binary Exact Match Acc: {test_stats['binary_exact_match_acc']:.3f}")
+    print(f"Binary Hamming Score: {test_stats['binary_hamming_score']:.3f}")
+    print(f"Binary Macro Acc: {test_stats['binary_macro_acc']:.3f}")
+else:
+    print("Binary Accuracy: N/A")
+
+# ========== 2. Glass Metrics ==========
+if test_stats['glass_acc'] is not None:
+    print(f"Glass Accuracy: {test_stats['glass_acc']:.3f}")
+else:
+    print("Glass Accuracy: N/A")
+
+# ========== 3. Heating Metrics ==========
+if test_stats['heating_mae'] is not None:
     print(f"Heating MAE: {test_stats['heating_mae']:.2f} kWh")
     print(f"Heating RMSE: {test_stats['heating_rmse']:.2f} kWh")
-    print(f"Heating R²: {test_stats['heating_r2']:.3f}")
+    
+    # R² nur ausgeben wenn definiert
+    if test_stats['heating_r2'] is not None:
+        print(f"Heating R²: {test_stats['heating_r2']:.3f}")
+    else:
+        print("Heating R²: N/A (zu wenig Varianz)")
+    
+    print(f"Heating MAPE: {test_stats['heating_mape']:.2f}%")
+else:
+    print("Heating Metrics: N/A (keine validen Werte)")
 
 print(f"\nErgebnisse geschrieben nach: {RESULTS_DIR}")
 
@@ -1288,6 +1505,13 @@ plot_binary_f1_scores(test_stats['binary_prf'], save_fig=True)
 plot_heating_scatter(
     test_stats['all_heating_targets'], 
     test_stats['all_heating_preds'], 
+    save_fig=True
+)
+
+# Binary Metrics mit Accuracy
+plot_binary_metrics_with_accuracy(
+    test_stats['binary_prf'], 
+    test_stats['binary_per_label_acc'],  # ← NEU
     save_fig=True
 )
 

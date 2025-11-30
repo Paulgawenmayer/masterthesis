@@ -322,31 +322,36 @@ def evaluate_dataset(root_dir=ROOT_DIR):
 
     # Print binary label statistics
     print("\n1. BINARY LABELS:")
-    headers = ["Label", "Checked", "Unchecked", "Missing", "Checked %"]
-
-    # Fix: Split the format strings to avoid using float format for string header
-    header_format = "{:<30} {:<10} {:<10} {:<10} {:<10}"
-    row_format = "{:<30} {:<8d} ({:5.1f}%) {:<8d} ({:5.1f}%) {:<8d} ({:5.1f}%) {:<8d} ({:5.1f}%)"
+    headers = ["Label", "Checked", "Unchecked", "Missing"]
+    
+    header_format = "{:<30} {:<20} {:<20} {:<20}"
+    row_format = "{:<30} {:>8d} ({:>5.1f}%) {:>8d} ({:>5.1f}%) {:>8d} ({:>5.1f}%)"
 
     print(header_format.format(*headers))
-    print("-" * 75)
+    print("-" * 95)
 
     for col in BINARY_LABEL_COLUMNS:
         total = sum(binary_counts[col].values())
-        checked_percent = (binary_counts[col]["checked"] / total) * 100 if total > 0 else 0
+        
+        checked = binary_counts[col]["checked"]
+        unchecked = binary_counts[col]["unchecked"]
+        missing = binary_counts[col]["missing"]
+        
+        checked_pct = (checked / total) * 100 if total > 0 else 0
+        unchecked_pct = (unchecked / total) * 100 if total > 0 else 0
+        missing_pct = (missing / total) * 100 if total > 0 else 0
+        
         print(row_format.format(
             col,
-            binary_counts[col]["checked"],
-            binary_counts[col]["unchecked"],
-            binary_counts[col]["missing"],
-            checked_percent
+            checked, checked_pct,      # ← 3 Argumente für "Checked"
+            unchecked, unchecked_pct,  # ← 3 Argumente für "Unchecked"
+            missing, missing_pct       # ← 3 Argumente für "Missing"
         ))
 
     return {
         "total_houses": len(all_folders),
         "binary_counts": binary_counts
     }
-
 
 
 dataset_stats = evaluate_dataset(ROOT_DIR)
@@ -742,12 +747,42 @@ def evaluate(model, loader):
 
     prf_bin = precision_recall_fscore_support(all_bin_targets, all_bin_preds, average=None, zero_division=0)
     avg_loss_b = np.mean(losses) if losses else 0.0
+    
+    
+    # 1. Exact Match Accuracy (Subset Accuracy)
+    if len(all_bin_targets) > 0:
+        exact_match_acc = np.all(all_bin_preds == all_bin_targets, axis=1).mean()
+    else:
+        exact_match_acc = 0.0
+    
+    # 2. Hamming Score (Label-wise Accuracy)
+    if len(all_bin_targets) > 0:
+        hamming_score = (all_bin_preds == all_bin_targets).mean()
+    else:
+        hamming_score = 0.0
+    
+    # 3. Per-Label Accuracy
+    per_label_acc = []
+    for i in range(len(BINARY_LABEL_COLUMNS)):
+        if len(all_bin_targets) > 0:
+            acc = (all_bin_preds[:, i] == all_bin_targets[:, i]).mean()
+        else:
+            acc = 0.0
+        per_label_acc.append(acc)
+    per_label_acc = np.array(per_label_acc)
+    
+    # 4. Macro-Average Accuracy
+    macro_acc = per_label_acc.mean()
 
     return {
         "binary_prf": prf_bin,
         "loss_b": avg_loss_b,
         "all_bin_targets": all_bin_targets,
-        "all_bin_preds": all_bin_preds
+        "all_bin_preds": all_bin_preds,
+        "exact_match_acc": exact_match_acc,
+        "hamming_score": hamming_score,
+        "per_label_acc": per_label_acc,
+        "macro_acc": macro_acc  # ← DIESE ZEILE FEHLTE!
     }
 
 
@@ -756,11 +791,9 @@ def evaluate(model, loader):
 # Training loop mit Early Stopping
 train_losses_epochs = []
 val_loss_b_epochs = []
-val_loss_g_epochs = []
-val_loss_h_epochs = []
-val_total_loss_epochs = []
-val_glass_acc_epochs = []
-val_heating_mae_epochs = []
+val_exact_match_acc_epochs = []  # ← NEU hinzufügen
+val_hamming_score_epochs = []     # ← NEU hinzufügen
+val_macro_acc_epochs = []         # ← NEU hinzufügen
 
 # Early Stopping initialisieren
 early_stopping = EarlyStopping(patience=5, min_delta=0.001, restore_best_weights=True)
@@ -786,23 +819,32 @@ for epoch in range(1, NUM_EPOCHS+1):
         iters += 1
 
     avg_train_loss = running_loss / max(1, iters)
+    train_losses_epochs.append(avg_train_loss)  # ← DIESE ZEILE FEHLT!
+    
     print(f"Epoch {epoch}: Train Loss: {avg_train_loss:.4f}")
 
     # Validation
     val_stats = evaluate(model, val_loader)
     avg_val_loss = val_stats['loss_b']
-    print(f"Epoch {epoch}: Val Loss: {avg_val_loss:.4f}")
+    
 
-    # Metriken speichern für Plot
-    train_losses_epochs.append(avg_train_loss)
     val_loss_b_epochs.append(avg_val_loss)
-
-    # Binary metrics
+    val_exact_match_acc_epochs.append(val_stats['exact_match_acc'])  
+    val_hamming_score_epochs.append(val_stats['hamming_score'])     
+    val_macro_acc_epochs.append(val_stats['macro_acc'])              
+    
+    print(f"Epoch {epoch}: Val Loss: {avg_val_loss:.4f}")
+    print(f"  Exact Match Acc: {val_stats['exact_match_acc']:.3f}")
+    print(f"  Hamming Score:   {val_stats['hamming_score']:.3f}")
+    print(f"  Macro Accuracy:  {val_stats['macro_acc']:.3f}")
+    
+    # Binary metrics (wie bisher)
     prec, rec, f1, sup = val_stats['binary_prf']
     print("Binary labels (per class):")
     for i, col in enumerate(BINARY_LABEL_COLUMNS):
-        print(f"  {col:25s}  P={prec[i]:.3f}  R={rec[i]:.3f}  F1={f1[i]:.3f}  support={sup[i]}")
-
+        acc = val_stats['per_label_acc'][i]
+        print(f"  {col:25s}  P={prec[i]:.3f}  R={rec[i]:.3f}  F1={f1[i]:.3f}  Acc={acc:.3f}  support={sup[i]}")
+    
     # Modell-Checkpointing (bestes Modell basierend auf Validation-Loss)
     if avg_val_loss < best_val_loss:
         best_val_loss = avg_val_loss
@@ -901,12 +943,31 @@ def test_model_and_write_results(model, test_loader, folders_list=None, results_
 
     prf_bin = precision_recall_fscore_support(all_bin_targets, all_bin_preds, average=None, zero_division=0)
     avg_loss_b = np.mean(losses) if losses else 0.0
+    
+    if len(all_bin_targets) > 0:
+        exact_match_acc = np.all(all_bin_preds == all_bin_targets, axis=1).mean()
+        hamming_score = (all_bin_preds == all_bin_targets).mean()
+        per_label_acc = []
+        for i in range(len(BINARY_LABEL_COLUMNS)):
+            acc = (all_bin_preds[:, i] == all_bin_targets[:, i]).mean()
+            per_label_acc.append(acc)
+        per_label_acc = np.array(per_label_acc)
+        macro_acc = per_label_acc.mean()
+    else:
+        exact_match_acc = 0.0
+        hamming_score = 0.0
+        per_label_acc = np.zeros(len(BINARY_LABEL_COLUMNS))
+        macro_acc = 0.0
 
     return {
         "binary_prf": prf_bin,
         "loss_b": avg_loss_b,
         "all_bin_targets": all_bin_targets,
-        "all_bin_preds": all_bin_preds
+        "all_bin_preds": all_bin_preds,
+        "exact_match_acc": exact_match_acc,
+        "hamming_score": hamming_score,
+        "per_label_acc": per_label_acc,
+        "macro_acc": macro_acc
     }
 
 
@@ -914,9 +975,12 @@ def test_model_and_write_results(model, test_loader, folders_list=None, results_
 # Performance Metriken
 ensure_dir(CHARTS_DIR)
 
-def plot_binary_training_metrics(train_losses_epochs, val_loss_b_epochs, binary_prf, test_stats, save_fig=True):
+def plot_binary_training_metrics(train_losses_epochs, val_loss_b_epochs, 
+                                 val_exact_match_acc_epochs, val_hamming_score_epochs,
+                                 binary_prf, per_label_acc, test_stats, save_fig=True):
     """
-    Plots training loss curves, binary metrics per class, and confusion matrices for binary labels.
+    Plots training loss curves, accuracy curves, binary metrics per class, 
+    and confusion matrices for binary labels.
     """
     # 1. Training Loss Plot
     plt.figure(figsize=(8, 5))
@@ -930,36 +994,49 @@ def plot_binary_training_metrics(train_losses_epochs, val_loss_b_epochs, binary_
     if save_fig:
         plt.savefig(os.path.join(CHARTS_DIR, "binary_loss_curve.png"), dpi=300, bbox_inches='tight')
     plt.show()
+    
+    if len(val_exact_match_acc_epochs) > 0 and len(val_hamming_score_epochs) > 0:
+        plt.figure(figsize=(8, 5))
+        plt.plot(np.arange(1, len(val_exact_match_acc_epochs)+1), val_exact_match_acc_epochs, 
+                 label='Exact Match Acc', color='green', marker='s')
+        plt.plot(np.arange(1, len(val_hamming_score_epochs)+1), val_hamming_score_epochs, 
+                 label='Hamming Score', color='orange', marker='^')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.title('Multi-Label Accuracy Metrics per Epoch')
+        plt.legend()
+        plt.grid(alpha=0.2)
+        plt.ylim([0, 1])
+        if save_fig:
+            plt.savefig(os.path.join(CHARTS_DIR, "binary_accuracy_curve.png"), dpi=300, bbox_inches='tight')
+        plt.show()
 
-    # 2. Binary Metrics per Class (Precision, Recall, F1)
-    if binary_prf is not None and len(binary_prf) == 4:
+    # ========== 3. Binary Metrics per Class (INKL. ACCURACY!) ==========
+    if binary_prf is not None and len(binary_prf) == 4 and per_label_acc is not None:
         prec, rec, f1, support = binary_prf
         x = np.arange(len(prec))
-        width = 0.25
+        width = 0.2  # Schmaler wegen 4 Balken
 
-        # Dynamisch: nur so viele Labels wie Werte vorhanden sind
-        if len(x) == len(BINARY_LABEL_COLUMNS):
-            label_names = BINARY_LABEL_COLUMNS
-        else:
-            # Fallback: generische Namen, falls die Zuordnung nicht passt
-            label_names = [f"Label {i+1}" for i in range(len(x))]
+        label_names = BINARY_LABEL_COLUMNS if len(x) == len(BINARY_LABEL_COLUMNS) else [f"Label {i+1}" for i in range(len(x))]
 
-        plt.figure(figsize=(10, 6))
-        plt.bar(x - width, prec, width, label='Precision')
-        plt.bar(x, rec, width, label='Recall')
-        plt.bar(x + width, f1, width, label='F1')
+        plt.figure(figsize=(12, 6))
+        plt.bar(x - 1.5*width, prec, width, label='Precision', color='blue')
+        plt.bar(x - 0.5*width, rec, width, label='Recall', color='orange')
+        plt.bar(x + 0.5*width, f1, width, label='F1', color='green')
+        plt.bar(x + 1.5*width, per_label_acc, width, label='Accuracy', color='purple')  
         plt.xlabel('Binary Classes')
         plt.ylabel('Score')
         plt.title('Binary Classification Metrics per Class')
         plt.xticks(x, [label[:12] + '...' if len(label) > 12 else label for label in label_names], rotation=45, ha='right')
         plt.legend()
         plt.grid(alpha=0.2)
+        plt.ylim([0, 1.05])  # Etwas Platz oben
         plt.tight_layout()
         if save_fig:
             plt.savefig(os.path.join(CHARTS_DIR, "binary_metrics_per_class.png"), dpi=300, bbox_inches='tight')
         plt.show()
 
-    # 3. Confusion Matrices for each binary label
+    # 4. Confusion Matrices (unverändert)
     if test_stats is not None:
         for i, label_name in enumerate(BINARY_LABEL_COLUMNS):
             fig = plt.figure(figsize=(6, 5))
@@ -984,7 +1061,10 @@ test_stats = test_model_and_write_results(model, test_loader)
 plot_binary_training_metrics(
     train_losses_epochs=train_losses_epochs,
     val_loss_b_epochs=val_loss_b_epochs,
+    val_exact_match_acc_epochs=val_exact_match_acc_epochs,  
+    val_hamming_score_epochs=val_hamming_score_epochs,     
     binary_prf=test_stats['binary_prf'],
+    per_label_acc=test_stats['per_label_acc'],              
     test_stats=test_stats,
     save_fig=True
 )
